@@ -1,13 +1,12 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { FiDownload, FiChevronDown } from "react-icons/fi";
+import {  FiChevronDown } from "react-icons/fi";
 import Image from "next/image";
 import { useState } from "react";
 
 const links = [
   { href: '#home', label: 'Home' },
-  
   { href: '#experience', label: 'Experience' },
   { href: '#projects', label: 'Projects' },
   { href: '#articles', label: 'Articles' },
@@ -33,9 +32,9 @@ export function Navbar() {
   const [selectedLang, setSelectedLang] = useState(languages[0]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-900/60 backdrop-blur-xl px-8 py-4">
+    <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-900/60  backdrop-blur-xl px-8 py-4">
       <nav className="mx-auto flex max-w-7xl items-center justify-between">
-        {/* Logo */}
+        
         <div className="flex items-center gap-3 group/logo">
   <motion.div 
     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
@@ -54,7 +53,7 @@ export function Navbar() {
       className="object-cover group/logo-hover:brightness-110 group/logo-hover:grayscale-0 transition-all duration-500" 
       priority 
     />
-    {/* Crazy Floating Particles */}
+    
     <div className="absolute inset-0 opacity-0 group/logo-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
       <div className="absolute w-1 h-1 bg-white/50 rounded-full top-1 left-1 animate-ping" />
       <div className="absolute w-1.5 h-1.5 bg-white/30 rounded-full top-2 right-2 animate-ping delay-100" />
@@ -62,7 +61,7 @@ export function Navbar() {
     </div>
   </motion.div>
   
-  {/* Glowing Ring Effect */}
+ 
   <motion.div 
     className="w-10 h-10 rounded-xl border-2 border-white/10 absolute -inset-1 opacity-0 group/logo-hover:opacity-100 group/logo-hover:animate-spin-slow bg-gradient-to-r from-white/20 to-transparent shadow-2xl shadow-white/10"
     animate={{ 
@@ -76,26 +75,24 @@ export function Navbar() {
   />
 </div>
 
+        
+<div className="hidden items-center gap-4 text-sm text-white/70 md:flex lg:gap-6">
+  {links.map((link) => (
+    <motion.a
+      key={link.href}
+      href={link.href}
+      className="relative px-3 py-2 text-xs lg:text-sm lg:px-4 transition-all duration-300 hover:text-white group whitespace-nowrap"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <span className="relative z-10">{link.label}</span>
+      <span className="bg-white/10 absolute inset-0 -z-10 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 origin-center" />
+    </motion.a>
+  ))}
+</div>
 
-        {/* Desktop Nav */}
-        <div className="hidden items-center gap-4 text-sm text-white/70 md:flex lg:gap-6">
-          {links.map((link) => (
-            <motion.a
-              key={link.href}
-              href={link.href}
-              className="relative px-3 py-2 text-xs lg:text-sm lg:px-4 transition-all duration-300 hover:text-white group whitespace-nowrap"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="relative z-10">{link.label}</span>
-              <span className="bg-white/10 absolute inset-0 -z-10 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 origin-center" />
-            </motion.a>
-          ))}
-        </div>
-
-        {/* Right side actions */}
-        <div className="flex items-center gap-3 mr-4">
-  {/* Language Dropdown Button */}
+       
+ <div className="flex items-center gap-3 mr-4">
   <motion.button
     className="inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold border border-white/20 bg-white/5 backdrop-blur-sm hover:bg-white/10 hover:border-white/40 transition-all duration-300 px-4 py-2.5 h-11 w-auto gap-2 rounded-xl shadow-lg hover:shadow-white/20 md:mr-0"
     aria-label="Change language"
@@ -104,13 +101,12 @@ export function Navbar() {
     whileHover={{ scale: 1.05 }}
   >
     <span className="shrink-0 text-xl" role="img" aria-hidden="true">
-      🇬🇧
+     {selectedLang?.flag || '🌐'}
     </span>
-    <span className="font-bold text-sm">English</span>
+    <span className="font-bold text-sm">{selectedLang?.name || "English"}</span>
     <FiChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
   </motion.button>
 
-  {/* LANGUAGE DROPDOWN */}
   <AnimatePresence>
     {langOpen && (
       <motion.div
@@ -129,7 +125,7 @@ export function Navbar() {
             >
               <motion.button
                 className={`hover:bg-white/5 flex w-full items-center gap-2.5 px-4 py-3 text-left transition-all duration-300 rounded-lg text-sm font-medium ${
-                  lang.selected 
+                  selectedLang?.name === lang.name 
                     ? 'bg-white/10 border border-white/30 shadow-white/20 shadow-md' 
                     : ''
                 }`}
@@ -151,7 +147,7 @@ export function Navbar() {
                     {lang.native}
                   </span>
                 </div>
-                {lang.selected && (
+                {selectedLang?.name === lang.name && (
                   <motion.svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
@@ -178,7 +174,7 @@ export function Navbar() {
   </AnimatePresence>
 </div>
 
-      </nav>
-    </header>
+</nav>
+</header>
   );
 }

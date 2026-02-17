@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // next.config.js - Add this to fix the external image error
   /** @type {import('next').NextConfig} */
 
   images: {
