@@ -1,4 +1,3 @@
-// lib/articles-data.ts
 export interface Article {
   slug: string;
   title: string;
@@ -283,17 +282,14 @@ AI integration opens endless possibilities for modern web applications. Start ex
   },
 ];
 
-// Helper function to get article by slug
 export function getArticleBySlug(slug: string): Article | undefined {
   return articlesData.find((article) => article.slug === slug);
 }
 
-// Helper function to get all articles
 export function getAllArticles(): Article[] {
   return articlesData;
 }
 
-// Helper function to get featured articles
 export function getFeaturedArticles(): Article[] {
   return articlesData.filter((article) => article.featured);
 }
