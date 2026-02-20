@@ -334,7 +334,9 @@ export default function UserPage() {
   const liveErrors = validate(form, imagePreview);
   const getErr = (field: string) =>
     touched.has(field)
-      ? ((liveErrors as Record<string, unknown>)[field] as string | undefined)
+      ? ((liveErrors as unknown as Record<string, unknown>)[field] as
+          | string
+          | undefined)
       : undefined;
   const getSocialErr = (key: string) =>
     touched.has(`social_${key}`)
