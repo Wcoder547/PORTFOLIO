@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, DragEvent } from "react";
+import { useState, useEffect, useCallback, useRef, DragEvent } from "react";
 import {
   Star,
   Plus,
@@ -25,14 +25,23 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Testimonial {
   id: string;
   quote: string;
   author: string;
   title: string;
   location: string;
-  avatar: string | null; // base64 or URL
+  avatar: string | null;
+}
+
+interface TestimonialAPI {
+  _id: string;
+  quote: string;
+  author: string;
+  title: string;
+  location: string;
+  avatar?: { public_id?: string; url: string };
 }
 
 interface FormErrors {
@@ -43,59 +52,49 @@ interface FormErrors {
   avatar?: string;
 }
 
-// ─── Default data (mirrors your frontend) ─────────────────────────────────────
-const defaultTestimonials: Testimonial[] = [
-  {
-    id: "1",
-    quote:
-      "I have worked with Waseem throughout two projects. He has always shown tremendous initiative to get work done. I was impressed with his back end skills, as well as having a great eye for UX and UI.",
-    author: "Lucca Allen",
-    title: "Co-Founder @ ToraTech AI",
-    location: "Dublin, Ireland",
-    avatar: null,
-  },
-  {
-    id: "2",
-    quote:
-      "Waseem approached his tasks with a positive attitude and showed a clear willingness to learn. His openness to feedback and guidance was a valuable part of the collaboration.",
-    author: "Daniela Vélez",
-    title: "Global Marketing Director @ Dragon Sino Group",
-    location: "Coventry, United Kingdom",
-    avatar: null,
-  },
-];
+// ─── Normalize MongoDB → frontend ────────────────────────────────────────────
+const normalize = (t: TestimonialAPI): Testimonial => ({
+  id: t._id,
+  quote: t.quote,
+  author: t.author,
+  title: t.title,
+  location: t.location,
+  avatar: t.avatar?.url ?? null,
+});
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const validate = (form: Omit<Testimonial, "id">): FormErrors => {
   const e: FormErrors = {};
   if (!form.quote.trim()) e.quote = "Quote is required.";
-  else if (form.quote.trim().length < 30)
-    e.quote = "Quote must be at least 30 characters.";
-  else if (form.quote.length > 600)
-    e.quote = "Quote must be under 600 characters.";
-
+  else if (form.quote.trim().length < 30) e.quote = "At least 30 characters.";
+  else if (form.quote.length > 600) e.quote = "Max 600 characters.";
   if (!form.author.trim()) e.author = "Author name is required.";
   else if (form.author.length > 80) e.author = "Max 80 characters.";
-
   if (!form.title.trim()) e.title = "Role / title is required.";
   else if (form.title.length > 100) e.title = "Max 100 characters.";
-
   if (!form.location.trim()) e.location = "Location is required.";
   else if (form.location.length > 80) e.location = "Max 80 characters.";
-
   return e;
 };
 
 const hasErrors = (e: FormErrors) => Object.values(e).some(Boolean);
 
-// ─── Field error ──────────────────────────────────────────────────────────────
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return (
     <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1">
-      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-      {msg}
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {msg}
     </p>
+  );
+}
+
+function StarRating({ count = 5 }: { count?: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: count }).map((_, i) => (
+        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+      ))}
+    </div>
   );
 }
 
@@ -107,27 +106,19 @@ const emptyForm: Omit<Testimonial, "id"> = {
   avatar: null,
 };
 
-// ─── Star rating display ──────────────────────────────────────────────────────
-function StarRating({ count = 5 }: { count?: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: count }).map((_, i) => (
-        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-      ))}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function TestimonialsPage() {
-  const [testimonials, setTestimonials] =
-    useState<Testimonial[]>(defaultTestimonials);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -135,14 +126,38 @@ export default function TestimonialsPage() {
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  // ── 1. Fetch on mount ──────────────────────────────────────────────────────
+  const fetchTestimonials = useCallback(async () => {
+    try {
+      setLoading(true);
+      setFetchError(null);
+      const res = await fetch("/api/admin/testimonials");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to fetch");
+      setTestimonials((json.data as TestimonialAPI[]).map(normalize));
+    } catch (err: unknown) {
+      setFetchError(
+        err instanceof Error ? err.message : "Something went wrong",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, [fetchTestimonials]);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const touch = (f: string) => setTouched((p) => new Set([...p, f]));
 
   const openAdd = () => {
     setForm(emptyForm);
+    setAvatarFile(null);
     setErrors({});
     setTouched(new Set());
     setAvatarMode("upload");
+    setSaveError(null);
     setEditingId("new");
   };
 
@@ -154,17 +169,24 @@ export default function TestimonialsPage() {
       location: t.location,
       avatar: t.avatar,
     });
+    setAvatarFile(null);
     setErrors({});
     setTouched(new Set());
-    setAvatarMode(t.avatar?.startsWith("http") ? "url" : "upload");
+    setSaveError(null);
+    // Cloudinary URLs contain "cloudinary.com" → upload mode; plain external → url mode
+    setAvatarMode(
+      t.avatar && !t.avatar.includes("cloudinary.com") ? "url" : "upload",
+    );
     setEditingId(t.id);
   };
 
   const closeForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setAvatarFile(null);
     setErrors({});
     setTouched(new Set());
+    setSaveError(null);
   };
 
   const handleAvatarFile = (file: File) => {
@@ -176,6 +198,7 @@ export default function TestimonialsPage() {
       setErrors((e) => ({ ...e, avatar: "Image must be under 3MB." }));
       return;
     }
+    setAvatarFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setForm((f) => ({ ...f, avatar: ev.target?.result as string }));
@@ -191,6 +214,7 @@ export default function TestimonialsPage() {
     if (file) handleAvatarFile(file);
   };
 
+  // ── 2. Save (FormData — supports optional file upload) ─────────────────────
   const handleSave = async () => {
     const allFields = new Set(["quote", "author", "title", "location"]);
     setTouched(allFields);
@@ -199,34 +223,72 @@ export default function TestimonialsPage() {
     if (hasErrors(e)) return;
 
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    // 👉 Replace with API call:
-    // await fetch("/api/testimonials", { method: editingId === "new" ? "POST" : "PUT", body: JSON.stringify(form) })
+    setSaveError(null);
 
-    if (editingId === "new") {
-      setTestimonials((prev) => [
-        { ...form, id: Date.now().toString() },
-        ...prev,
-      ]);
-    } else {
-      setTestimonials((prev) =>
-        prev.map((t) => (t.id === editingId ? { ...form, id: editingId } : t)),
-      );
+    try {
+      const isNew = editingId === "new";
+      const url = isNew
+        ? "/api/admin/testimonials"
+        : `/api/admin/testimonials/${editingId}`;
+      const method = isNew ? "POST" : "PUT";
+
+      const fd = new FormData();
+      fd.append("quote", form.quote.trim());
+      fd.append("author", form.author.trim());
+      fd.append("title", form.title.trim());
+      fd.append("location", form.location.trim());
+
+      if (avatarMode === "upload" && avatarFile) {
+        fd.append("avatar", avatarFile); // new file
+      } else if (avatarMode === "url" && form.avatar?.startsWith("http")) {
+        fd.append("avatarUrl", form.avatar); // external URL
+      }
+
+      if (!isNew && !form.avatar && !avatarFile) {
+        fd.append("removeAvatar", "true"); // user cleared it
+      }
+
+      const res = await fetch(url, { method, body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to save");
+
+      const savedT = normalize(json.data as TestimonialAPI);
+
+      if (isNew) {
+        setTestimonials((prev) => [savedT, ...prev]);
+      } else {
+        setTestimonials((prev) =>
+          prev.map((t) => (t.id === editingId ? savedT : t)),
+        );
+      }
+
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        closeForm();
+      }, 1200);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      closeForm();
-    }, 1200);
   };
 
+  // ── 3. Delete ─────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
-    await new Promise((r) => setTimeout(r, 700));
-    // 👉 Replace with: await fetch(`/api/testimonials/${id}`, { method: "DELETE" })
-    setTestimonials((prev) => prev.filter((t) => t.id !== id));
-    setDeleteId(null);
+    try {
+      const res = await fetch(`/api/admin/testimonials/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to delete");
+      setTestimonials((prev) => prev.filter((t) => t.id !== id));
+    } catch (err: unknown) {
+      console.error("[Delete Testimonial]", err);
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const liveErrors = validate(form);
@@ -241,6 +303,35 @@ export default function TestimonialsPage() {
         ? "border-red-500/60 focus:ring-red-500/30"
         : "border-zinc-700/50 focus:ring-amber-500/40 focus:border-transparent"
     }`;
+
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 text-amber-400 animate-spin" />
+          <p className="text-zinc-500 text-sm">Loading testimonials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Fetch error state ─────────────────────────────────────────────────────
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle className="h-8 w-8 text-red-400" />
+          <p className="text-zinc-300 text-sm font-medium">{fetchError}</p>
+          <button
+            onClick={fetchTestimonials}
+            className="mt-2 px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-all">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -282,18 +373,15 @@ export default function TestimonialsPage() {
               exit={{ opacity: 0, y: -12, scale: 0.98 }}
               transition={{ duration: 0.2 }}
               className="rounded-2xl border border-amber-500/30 bg-zinc-900/80 shadow-2xl shadow-amber-500/5 overflow-hidden">
-              {/* Form header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-amber-500/5">
                 <h2 className="text-sm font-bold text-amber-300 flex items-center gap-2">
                   {editingId === "new" ? (
                     <>
-                      <Plus className="h-4 w-4" />
-                      New Testimonial
+                      <Plus className="h-4 w-4" /> New Testimonial
                     </>
                   ) : (
                     <>
-                      <Pencil className="h-4 w-4" />
-                      Edit Testimonial
+                      <Pencil className="h-4 w-4" /> Edit Testimonial
                     </>
                   )}
                 </h2>
@@ -311,10 +399,8 @@ export default function TestimonialsPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                        <Camera className="h-3.5 w-3.5 text-amber-400" />
-                        Avatar
+                        <Camera className="h-3.5 w-3.5 text-amber-400" /> Avatar
                       </label>
-                      {/* Toggle upload/URL */}
                       <div className="flex items-center bg-zinc-800/60 rounded-lg p-0.5 text-xs">
                         <button
                           onClick={() => setAvatarMode("upload")}
@@ -344,13 +430,14 @@ export default function TestimonialsPage() {
                               ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-900 scale-[1.02]"
                               : "ring-2 ring-zinc-700/50 hover:ring-amber-500/50"
                           }`}>
-                          {form.avatar && !form.avatar.startsWith("http") ? (
+                          {form.avatar ? (
                             <>
                               <Image
                                 src={form.avatar}
                                 alt="Avatar"
                                 fill
                                 className="object-cover"
+                                unoptimized
                               />
                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                                 <Camera className="h-6 w-6 text-white" />
@@ -381,14 +468,14 @@ export default function TestimonialsPage() {
                             if (f) handleAvatarFile(f);
                           }}
                         />
-                        {form.avatar && !form.avatar.startsWith("http") && (
+                        {form.avatar && (
                           <button
-                            onClick={() =>
-                              setForm((f) => ({ ...f, avatar: null }))
-                            }
+                            onClick={() => {
+                              setForm((f) => ({ ...f, avatar: null }));
+                              setAvatarFile(null);
+                            }}
                             className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors">
-                            <Trash2 className="h-3 w-3" />
-                            Remove
+                            <Trash2 className="h-3 w-3" /> Remove
                           </button>
                         )}
                       </>
@@ -408,14 +495,15 @@ export default function TestimonialsPage() {
                           placeholder="https://example.com/avatar.jpg"
                           className="w-full rounded-xl bg-zinc-800/70 border border-zinc-700/50 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-transparent transition-all hover:border-zinc-600"
                         />
-                        {/* URL preview */}
                         {form.avatar?.startsWith("http") && (
                           <div className="flex items-center gap-3 p-2 rounded-xl bg-zinc-800/40 border border-zinc-700/40">
-                            <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-zinc-700/50 shrink-0">
+                            <div className="relative h-10 w-10 rounded-full overflow-hidden ring-2 ring-zinc-700/50 shrink-0">
                               <Image
                                 src={form.avatar}
                                 alt="Preview"
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                unoptimized
                               />
                             </div>
                             <span className="text-xs text-zinc-400 truncate">
@@ -428,7 +516,7 @@ export default function TestimonialsPage() {
                     <FieldError msg={errors.avatar} />
                   </div>
 
-                  {/* Author name + title + location */}
+                  {/* Author + Title + Location */}
                   <div className="md:col-span-2 space-y-4">
                     <div className="space-y-1.5">
                       <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
@@ -500,7 +588,7 @@ export default function TestimonialsPage() {
                     }}
                     onBlur={() => touch("quote")}
                     rows={5}
-                    placeholder="Write the testimonial exactly as the client said it — keep it authentic and specific..."
+                    placeholder="Write the testimonial exactly as the client said it..."
                     className={`${inputClass(getErr("quote"))} resize-none`}
                   />
                   <div className="flex items-start justify-between gap-2">
@@ -516,8 +604,8 @@ export default function TestimonialsPage() {
                 {(form.quote || form.author) && (
                   <div className="rounded-xl border border-zinc-700/40 bg-zinc-800/30 p-4 space-y-3">
                     <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <Eye className="h-3.5 w-3.5" />
-                      Preview (as shown on portfolio)
+                      <Eye className="h-3.5 w-3.5" /> Preview (as shown on
+                      portfolio)
                     </p>
                     <div className="space-y-3">
                       <StarRating />
@@ -528,11 +616,15 @@ export default function TestimonialsPage() {
                       )}
                       <div className="flex items-center gap-3">
                         {form.avatar ? (
-                          <Image
-                            src={form.avatar}
-                            alt="avatar"
-                            className="h-9 w-9 rounded-full object-cover ring-2 ring-zinc-700/50 shrink-0"
-                          />
+                          <div className="relative h-9 w-9 rounded-full overflow-hidden ring-2 ring-zinc-700/50 shrink-0">
+                            <Image
+                              src={form.avatar}
+                              alt="avatar"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
                         ) : (
                           <div className="h-9 w-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-xs font-bold text-white shrink-0">
                             {form.author
@@ -558,12 +650,19 @@ export default function TestimonialsPage() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-                  {hasErrors(liveErrors) && touched.size > 0 && (
-                    <p className="flex items-center gap-1.5 text-xs text-amber-400">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      Fill required fields to save.
-                    </p>
-                  )}
+                  <div>
+                    {hasErrors(liveErrors) && touched.size > 0 && (
+                      <p className="flex items-center gap-1.5 text-xs text-amber-400">
+                        <AlertCircle className="h-3.5 w-3.5" /> Fill required
+                        fields to save.
+                      </p>
+                    )}
+                    {saveError && (
+                      <p className="flex items-center gap-1.5 text-xs text-red-400">
+                        <AlertCircle className="h-3.5 w-3.5" /> {saveError}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 ml-auto">
                     <button
                       onClick={closeForm}
@@ -580,17 +679,15 @@ export default function TestimonialsPage() {
                       } disabled:opacity-50 disabled:cursor-not-allowed`}>
                       {saving ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
+                          <Loader2 className="h-4 w-4 animate-spin" /> Saving...
                         </>
                       ) : saved ? (
                         <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Saved!
+                          <CheckCircle2 className="h-4 w-4" /> Saved!
                         </>
                       ) : (
                         <>
-                          <Save className="h-4 w-4" />
+                          <Save className="h-4 w-4" />{" "}
                           {editingId === "new"
                             ? "Add Testimonial"
                             : "Save Changes"}
@@ -607,7 +704,7 @@ export default function TestimonialsPage() {
         {/* ── Testimonials List ─────────────────────────────────────── */}
         <div className="space-y-4">
           <AnimatePresence>
-            {testimonials.length === 0 && (
+            {testimonials.length === 0 && !loading && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -617,7 +714,7 @@ export default function TestimonialsPage() {
                   No testimonials yet.
                 </p>
                 <p className="text-xs text-zinc-600 mt-1">
-                  Click Add Testimonial to get started.
+                  Click "Add Testimonial" to get started.
                 </p>
               </motion.div>
             )}
@@ -638,7 +735,6 @@ export default function TestimonialsPage() {
                       : "border-zinc-800 hover:border-zinc-700"
                   }`}>
                   <div className="p-5 flex gap-4">
-                    {/* Drag handle */}
                     <div className="shrink-0 text-zinc-700 cursor-grab hover:text-zinc-500 transition-colors hidden sm:flex items-start pt-1">
                       <GripVertical className="h-5 w-5" />
                     </div>
@@ -646,11 +742,15 @@ export default function TestimonialsPage() {
                     {/* Avatar */}
                     <div className="shrink-0">
                       {t.avatar ? (
-                        <Image
-                          src={t.avatar}
-                          alt={t.author}
-                          className="h-12 w-12 rounded-full object-cover ring-2 ring-zinc-700/50"
-                        />
+                        <div className="relative h-12 w-12 rounded-full overflow-hidden ring-2 ring-zinc-700/50">
+                          <Image
+                            src={t.avatar}
+                            alt={t.author}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
                       ) : (
                         <div className="h-12 w-12 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/30 flex items-center justify-center text-sm font-bold text-amber-300">
                           {t.author.slice(0, 2).toUpperCase()}
@@ -660,16 +760,11 @@ export default function TestimonialsPage() {
 
                     {/* Content */}
                     <div className="flex-1 min-w-0 space-y-2">
-                      {/* Stars */}
                       <StarRating />
-
-                      {/* Quote */}
                       <p
                         className={`text-sm text-zinc-300 italic leading-relaxed transition-all ${isExpanded ? "" : "line-clamp-2"}`}>
                         "{t.quote}"
                       </p>
-
-                      {/* Expand if long */}
                       {t.quote.length > 150 && (
                         <button
                           onClick={() =>
@@ -678,19 +773,15 @@ export default function TestimonialsPage() {
                           className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
                           {isExpanded ? (
                             <>
-                              <EyeOff className="h-3 w-3" />
-                              Collapse
+                              <EyeOff className="h-3 w-3" /> Collapse
                             </>
                           ) : (
                             <>
-                              <Eye className="h-3 w-3" />
-                              Read more
+                              <Eye className="h-3 w-3" /> Read more
                             </>
                           )}
                         </button>
                       )}
-
-                      {/* Author info */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
                         <span className="text-sm font-bold text-white">
                           {t.author}
@@ -699,8 +790,7 @@ export default function TestimonialsPage() {
                           {t.title}
                         </span>
                         <span className="flex items-center gap-1 text-xs text-zinc-500">
-                          <MapPin className="h-3 w-3" />
-                          {t.location}
+                          <MapPin className="h-3 w-3" /> {t.location}
                         </span>
                       </div>
                     </div>
@@ -736,8 +826,7 @@ export default function TestimonialsPage() {
         {testimonials.length > 0 && (
           <div className="flex items-center gap-2 text-xs text-zinc-600 pb-6">
             <GripVertical className="h-3.5 w-3.5" />
-            Testimonials display in carousel order. Drag to reorder (connect to
-            API).
+            Testimonials display in carousel order on your portfolio.
           </div>
         )}
       </div>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Folder,
   FileText,
@@ -26,7 +29,7 @@ const stats = [
     trendUp: true,
     gradient: "from-blue-500 to-cyan-500",
     glow: "shadow-blue-500/20",
-    href: "/dashboard/projects",
+    href: "/admin/dashboard/projects",
   },
   {
     label: "Articles",
@@ -36,7 +39,7 @@ const stats = [
     trendUp: true,
     gradient: "from-violet-500 to-purple-600",
     glow: "shadow-violet-500/20",
-    href: "/dashboard/articles",
+    href: "/admin/dashboard/articles",
   },
   {
     label: "Testimonials",
@@ -46,7 +49,7 @@ const stats = [
     trendUp: true,
     gradient: "from-amber-500 to-orange-500",
     glow: "shadow-amber-500/20",
-    href: "/dashboard/testimonials",
+    href: "/admin/dashboard/testimonials",
   },
   {
     label: "Experience",
@@ -56,7 +59,7 @@ const stats = [
     trendUp: null,
     gradient: "from-emerald-500 to-teal-500",
     glow: "shadow-emerald-500/20",
-    href: "/dashboard/experience",
+    href: "/admin/dashboard/experience",
   },
   {
     label: "FAQ Items",
@@ -66,7 +69,7 @@ const stats = [
     trendUp: null,
     gradient: "from-rose-500 to-pink-500",
     glow: "shadow-rose-500/20",
-    href: "/dashboard/faq",
+    href: "/admin/dashboard/faq",
   },
   {
     label: "Profile Views",
@@ -76,7 +79,7 @@ const stats = [
     trendUp: true,
     gradient: "from-indigo-500 to-blue-600",
     glow: "shadow-indigo-500/20",
-    href: "/dashboard/user",
+    href: "/admin/dashboard/user",
   },
 ];
 
@@ -119,7 +122,7 @@ const quickActions = [
   {
     label: "Add New Project",
     icon: Folder,
-    href: "/dashboard/projects",
+    href: "/admin/dashboard/projects",
     gradient: "from-blue-500/10 to-cyan-500/10",
     border: "border-blue-500/30",
     iconColor: "text-blue-400",
@@ -128,7 +131,7 @@ const quickActions = [
   {
     label: "Write New Article",
     icon: Pencil,
-    href: "/dashboard/articles",
+    href: "/admin/dashboard/articles",
     gradient: "from-violet-500/10 to-purple-500/10",
     border: "border-violet-500/30",
     iconColor: "text-violet-400",
@@ -137,7 +140,7 @@ const quickActions = [
   {
     label: "Add Testimonial",
     icon: MessageSquarePlus,
-    href: "/dashboard/testimonials",
+    href: "/admin/dashboard/testimonials",
     gradient: "from-amber-500/10 to-orange-500/10",
     border: "border-amber-500/30",
     iconColor: "text-amber-400",
@@ -146,7 +149,7 @@ const quickActions = [
   {
     label: "Update Experience",
     icon: Briefcase,
-    href: "/dashboard/experience",
+    href: "/admin/dashboard/experience",
     gradient: "from-emerald-500/10 to-teal-500/10",
     border: "border-emerald-500/30",
     iconColor: "text-emerald-400",
@@ -155,8 +158,16 @@ const quickActions = [
 ];
 
 export default function DashboardPage() {
-  const now = new Date();
-  const hours = now.getHours();
+  // ── Mounted state prevents SSR/client locale mismatch ──────────────────────
+  const [mounted, setMounted] = useState(false);
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    setMounted(true);
+  }, []);
+
+  const hours = now?.getHours() ?? 12;
   const greeting =
     hours < 12
       ? "Good morning"
@@ -164,30 +175,40 @@ export default function DashboardPage() {
         ? "Good afternoon"
         : "Good evening";
 
+  const dateStr =
+    mounted && now
+      ? now.toLocaleDateString("en-PK", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "—";
+
+  const timeStr =
+    mounted && now
+      ? now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })
+      : "—";
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 ">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* ── Top Header ─────────────────────────────────── */}
+        {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm text-zinc-500 mb-1 flex items-center gap-2">
               <Clock className="h-3.5 w-3.5" />
-              {now.toLocaleDateString("en-PK", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {dateStr}
             </p>
             <h1 className="text-3xl font-black tracking-tight text-white">
-              {greeting},{" "}
+              {mounted ? greeting : "Welcome"},{" "}
               <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Waseem!
               </span>{" "}
               👋
             </h1>
             <p className="text-sm text-zinc-500 mt-1">
-              Here &apos;s what &apos;s happening with your portfolio today.
+              Here&apos;s what&apos;s happening with your portfolio today.
             </p>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-zinc-400">
@@ -196,14 +217,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Stats Grid ──────────────────────────────────── */}
+        {/* ── Stats Grid ─────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {stats.map((stat) => (
             <Link
               key={stat.label}
               href={stat.href}
               className={`group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-xl ${stat.glow} hover:border-zinc-700 hover:scale-[1.02] transition-all duration-200`}>
-              {/* Background glow blob */}
               <div
                 className={`absolute -top-4 -right-4 h-16 w-16 rounded-full bg-gradient-to-br ${stat.gradient} opacity-10 group-hover:opacity-20 transition-opacity blur-xl`}
               />
@@ -232,7 +252,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* ── Bottom Section ──────────────────────────────── */}
+        {/* ── Bottom Section ──────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Recent Activity */}
           <div className="lg:col-span-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
@@ -290,15 +310,9 @@ export default function DashboardPage() {
                 </Link>
               ))}
             </div>
-
-            {/* Mini divider + footer note */}
             <div className="mt-5 pt-4 border-t border-zinc-800">
               <p className="text-xs text-zinc-600 text-center">
-                Portfolio last updated today at{" "}
-                {now.toLocaleTimeString("en-PK", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                Portfolio last updated today at {timeStr}
               </p>
             </div>
           </div>

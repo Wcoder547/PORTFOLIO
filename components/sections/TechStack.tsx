@@ -60,7 +60,6 @@ export function TechStack() {
                   />
                 </div>
 
-                
                 <AnimatePresence>
                   {hoveredTech === logoObj.name && (
                     <motion.div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   HelpCircle,
   Plus,
@@ -20,9 +20,15 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface FAQ {
   id: string;
+  question: string;
+  answer: string;
+}
+
+interface FAQAPI {
+  _id: string;
   question: string;
   answer: string;
 }
@@ -32,68 +38,33 @@ interface FormErrors {
   answer?: string;
 }
 
-// ─── Default data (mirrors your frontend) ─────────────────────────────────────
-const defaultFAQs: FAQ[] = [
-  {
-    id: "1",
-    question: "What services do you offer?",
-    answer:
-      "I offer: Frontend Development (React, Next.js, Vue, payments); Full Stack Development (MERN, MEVN, auth, real-time); Database & Backend; Performance & Frontend Optimization; Frontend Architecture & System Design; Product-Focused UI Engineering; and SEO, AEO, GEO & Production Readiness.",
-  },
-  {
-    id: "2",
-    question: "How much experience do you have?",
-    answer:
-      "I have 4+ years of real-world experience in web development, working with various technologies including React.js, Next.js, Node.js, MongoDB, Express.js, and Vue.js.",
-  },
-  {
-    id: "3",
-    question: "What is your hourly rate?",
-    answer:
-      "My freelance rate is $25-57/hour, though this may vary depending on the project scope and requirements. I'm flexible with working hours and available for both short-term and long-term projects.",
-  },
-  {
-    id: "4",
-    question: "Do you work remotely?",
-    answer:
-      "Yes. I work remotely with teams worldwide, including the US, UK, and Europe. I'm used to overlapping with US hours and async communication.",
-  },
-  {
-    id: "5",
-    question: "What technologies do you specialize in?",
-    answer:
-      "I specialize in React.js, Next.js, Node.js, TypeScript, JavaScript, MERN/MEVN stack, Tailwind CSS, ShadCN UI, MongoDB, Supabase, Express.js, Vue.js, and various other modern web technologies.",
-  },
-];
+// ─── Normalize MongoDB → frontend ─────────────────────────────────────────────
+const normalize = (f: FAQAPI): FAQ => ({
+  id: f._id,
+  question: f.question,
+  answer: f.answer,
+});
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const validate = (form: Omit<FAQ, "id">): FormErrors => {
   const e: FormErrors = {};
-
   if (!form.question.trim()) e.question = "Question is required.";
   else if (form.question.trim().length < 10)
-    e.question = "Question must be at least 10 characters.";
-  else if (form.question.length > 200)
-    e.question = "Question must be under 200 characters.";
-
+    e.question = "At least 10 characters.";
+  else if (form.question.length > 200) e.question = "Max 200 characters.";
   if (!form.answer.trim()) e.answer = "Answer is required.";
-  else if (form.answer.trim().length < 20)
-    e.answer = "Answer must be at least 20 characters.";
-  else if (form.answer.length > 1000)
-    e.answer = "Answer must be under 1000 characters.";
-
+  else if (form.answer.trim().length < 20) e.answer = "At least 20 characters.";
+  else if (form.answer.length > 1000) e.answer = "Max 1000 characters.";
   return e;
 };
 
 const hasErrors = (e: FormErrors) => Object.values(e).some(Boolean);
 
-// ─── Field error ──────────────────────────────────────────────────────────────
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return (
     <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1">
-      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-      {msg}
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {msg}
     </p>
   );
 }
@@ -102,16 +73,43 @@ const emptyForm: Omit<FAQ, "id"> = { question: "", answer: "" };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function FAQPage() {
-  const [faqs, setFaqs] = useState<FAQ[]>(defaultFAQs);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // ── 1. Fetch on mount ─────────────────────────────────────────────────────
+  const fetchFaqs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setFetchError(null);
+
+      const res = await fetch("/api/admin/faqs");
+      const json = await res.json();
+
+      if (!res.ok) throw new Error(json.message || "Failed to fetch");
+      setFaqs((json.data as FAQAPI[]).map(normalize));
+    } catch (err: unknown) {
+      setFetchError(
+        err instanceof Error ? err.message : "Something went wrong",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFaqs();
+  }, [fetchFaqs]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const touch = (f: string) => setTouched((p) => new Set([...p, f]));
@@ -121,6 +119,7 @@ export default function FAQPage() {
     setErrors({});
     setTouched(new Set());
     setPreviewOpen(false);
+    setSaveError(null);
     setEditingId("new");
   };
 
@@ -129,6 +128,7 @@ export default function FAQPage() {
     setErrors({});
     setTouched(new Set());
     setPreviewOpen(false);
+    setSaveError(null);
     setEditingId(faq.id);
   };
 
@@ -138,8 +138,10 @@ export default function FAQPage() {
     setErrors({});
     setTouched(new Set());
     setPreviewOpen(false);
+    setSaveError(null);
   };
 
+  // ── 2. Save ───────────────────────────────────────────────────────────────
   const handleSave = async () => {
     const allFields = new Set(["question", "answer"]);
     setTouched(allFields);
@@ -148,31 +150,58 @@ export default function FAQPage() {
     if (hasErrors(e)) return;
 
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 900));
-    // 👉 Replace with API:
-    // await fetch("/api/faqs", { method: editingId === "new" ? "POST" : "PUT", body: JSON.stringify(form) })
+    setSaveError(null);
 
-    if (editingId === "new") {
-      setFaqs((prev) => [...prev, { ...form, id: Date.now().toString() }]);
-    } else {
-      setFaqs((prev) =>
-        prev.map((f) => (f.id === editingId ? { ...form, id: editingId } : f)),
-      );
+    try {
+      const isNew = editingId === "new";
+      const url = isNew ? "/api/admin/faqs" : `/api/admin/faqs/${editingId}`;
+      const method = isNew ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: form.question.trim(),
+          answer: form.answer.trim(),
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to save");
+
+      const savedFaq = normalize(json.data as FAQAPI);
+
+      if (isNew) {
+        setFaqs((prev) => [...prev, savedFaq]);
+      } else {
+        setFaqs((prev) => prev.map((f) => (f.id === editingId ? savedFaq : f)));
+      }
+
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        closeForm();
+      }, 1200);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      closeForm();
-    }, 1200);
   };
 
+  // ── 3. Delete ─────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
-    await new Promise((r) => setTimeout(r, 700));
-    // 👉 Replace with: await fetch(`/api/faqs/${id}`, { method: "DELETE" })
-    setFaqs((prev) => prev.filter((f) => f.id !== id));
-    setDeleteId(null);
+    try {
+      const res = await fetch(`/api/admin/faq/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to delete");
+      setFaqs((prev) => prev.filter((f) => f.id !== id));
+    } catch (err: unknown) {
+      console.error("[Delete FAQ]", err);
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const liveErrors = validate(form);
@@ -187,6 +216,35 @@ export default function FAQPage() {
         ? "border-red-500/60 focus:ring-red-500/30"
         : "border-zinc-700/50 focus:ring-violet-500/40 focus:border-transparent"
     }`;
+
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 text-violet-400 animate-spin" />
+          <p className="text-zinc-500 text-sm">Loading FAQs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Fetch error state ─────────────────────────────────────────────────────
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle className="h-8 w-8 text-red-400" />
+          <p className="text-zinc-300 text-sm font-medium">{fetchError}</p>
+          <button
+            onClick={fetchFaqs}
+            className="mt-2 px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-all">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -235,7 +293,7 @@ export default function FAQPage() {
             },
             {
               label: "Last Updated",
-              value: "Today",
+              value: "Live",
               color: "text-emerald-400",
             },
           ].map((stat) => (
@@ -259,18 +317,15 @@ export default function FAQPage() {
               exit={{ opacity: 0, y: -12, scale: 0.98 }}
               transition={{ duration: 0.2 }}
               className="rounded-2xl border border-violet-500/30 bg-zinc-900/80 shadow-2xl shadow-violet-500/5 overflow-hidden">
-              {/* Form header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-violet-500/5">
                 <h2 className="text-sm font-bold text-violet-300 flex items-center gap-2">
                   {editingId === "new" ? (
                     <>
-                      <Plus className="h-4 w-4" />
-                      New FAQ Item
+                      <Plus className="h-4 w-4" /> New FAQ Item
                     </>
                   ) : (
                     <>
-                      <Pencil className="h-4 w-4" />
-                      Edit FAQ Item
+                      <Pencil className="h-4 w-4" /> Edit FAQ Item
                     </>
                   )}
                 </h2>
@@ -321,7 +376,7 @@ export default function FAQPage() {
                     }}
                     onBlur={() => touch("answer")}
                     rows={5}
-                    placeholder="Write a clear, helpful answer. Be specific about your experience, rates, availability, and tech stack..."
+                    placeholder="Write a clear, helpful answer..."
                     className={`${inputClass(getErr("answer"))} resize-none`}
                   />
                   <div className="flex items-start justify-between gap-2">
@@ -333,7 +388,7 @@ export default function FAQPage() {
                   </div>
                 </div>
 
-                {/* Live preview - accordion style exactly like frontend */}
+                {/* Live preview */}
                 {(form.question || form.answer) && (
                   <div className="space-y-2">
                     <button
@@ -341,17 +396,15 @@ export default function FAQPage() {
                       className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors uppercase tracking-wider">
                       {previewOpen ? (
                         <>
-                          <EyeOff className="h-3.5 w-3.5" />
-                          Hide Preview
+                          <EyeOff className="h-3.5 w-3.5" /> Hide Preview
                         </>
                       ) : (
                         <>
-                          <Eye className="h-3.5 w-3.5" />
-                          Show Preview (as on portfolio)
+                          <Eye className="h-3.5 w-3.5" /> Show Preview (as on
+                          portfolio)
                         </>
                       )}
                     </button>
-
                     <AnimatePresence>
                       {previewOpen && (
                         <motion.div
@@ -359,7 +412,6 @@ export default function FAQPage() {
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden">
-                          {/* Exact replica of frontend FAQ card */}
                           <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden">
                             <div className="flex items-center justify-between p-5">
                               <h3 className="pr-4 text-base font-semibold text-white">
@@ -384,12 +436,19 @@ export default function FAQPage() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-                  {hasErrors(liveErrors) && touched.size > 0 && (
-                    <p className="flex items-center gap-1.5 text-xs text-amber-400">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      Fill all required fields to save.
-                    </p>
-                  )}
+                  <div>
+                    {hasErrors(liveErrors) && touched.size > 0 && (
+                      <p className="flex items-center gap-1.5 text-xs text-amber-400">
+                        <AlertCircle className="h-3.5 w-3.5" /> Fill all
+                        required fields to save.
+                      </p>
+                    )}
+                    {saveError && (
+                      <p className="flex items-center gap-1.5 text-xs text-red-400">
+                        <AlertCircle className="h-3.5 w-3.5" /> {saveError}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 ml-auto">
                     <button
                       onClick={closeForm}
@@ -406,17 +465,15 @@ export default function FAQPage() {
                       } disabled:opacity-50 disabled:cursor-not-allowed`}>
                       {saving ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
+                          <Loader2 className="h-4 w-4 animate-spin" /> Saving...
                         </>
                       ) : saved ? (
                         <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Saved!
+                          <CheckCircle2 className="h-4 w-4" /> Saved!
                         </>
                       ) : (
                         <>
-                          <Save className="h-4 w-4" />
+                          <Save className="h-4 w-4" />{" "}
                           {editingId === "new" ? "Add FAQ" : "Save Changes"}
                         </>
                       )}
@@ -431,7 +488,7 @@ export default function FAQPage() {
         {/* ── FAQ List ──────────────────────────────────────────────── */}
         <div className="space-y-3">
           <AnimatePresence>
-            {faqs.length === 0 && (
+            {faqs.length === 0 && !loading && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -463,17 +520,12 @@ export default function FAQPage() {
                   }`}>
                   {/* Question row */}
                   <div className="flex items-center gap-3 px-4 py-4">
-                    {/* Drag handle */}
                     <div className="shrink-0 text-zinc-700 cursor-grab hover:text-zinc-500 transition-colors hidden sm:block">
                       <GripVertical className="h-5 w-5" />
                     </div>
-
-                    {/* Number badge */}
                     <div className="h-7 w-7 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-xs font-bold text-violet-300 shrink-0">
                       {index + 1}
                     </div>
-
-                    {/* Question text — click to expand */}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : faq.id)}
                       className="flex-1 text-left flex items-center justify-between gap-3 min-w-0">
@@ -484,8 +536,6 @@ export default function FAQPage() {
                         className={`h-4 w-4 text-zinc-500 shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180 text-violet-400" : ""}`}
                       />
                     </button>
-
-                    {/* Actions */}
                     <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => openEdit(faq)}
@@ -508,7 +558,7 @@ export default function FAQPage() {
                     </div>
                   </div>
 
-                  {/* Answer - expand inline (matches frontend accordion) */}
+                  {/* Expanded answer */}
                   <AnimatePresence initial={false}>
                     {isExpanded && (
                       <motion.div
@@ -534,8 +584,7 @@ export default function FAQPage() {
                               onClick={() => openEdit(faq)}
                               disabled={editingId !== null}
                               className="ml-auto flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors disabled:opacity-30">
-                              <Pencil className="h-3 w-3" />
-                              Edit
+                              <Pencil className="h-3 w-3" /> Edit
                             </button>
                           </div>
                         </div>
@@ -551,8 +600,7 @@ export default function FAQPage() {
         {faqs.length > 0 && (
           <div className="flex items-center gap-2 text-xs text-zinc-600 pb-6">
             <GripVertical className="h-3.5 w-3.5" />
-            FAQs display top-to-bottom on your portfolio. Drag to reorder
-            (connect to API).
+            FAQs display top-to-bottom on your portfolio.
           </div>
         )}
       </div>

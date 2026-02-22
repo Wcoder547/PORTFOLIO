@@ -1,4 +1,4 @@
-"use client";
+"use client"; // ← must be absolute line 1
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -48,22 +48,19 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      /* ✅ Override shadcn CSS variables directly - no more opacity stacking */
       style={
         {
-          "--sidebar-background": "240 6% 7%", // zinc-950 deep dark
-          "--sidebar-foreground": "0 0% 90%", // near white text
-          "--sidebar-accent": "240 5% 15%", // hover bg
-          "--sidebar-accent-foreground": "0 0% 100%", // white on hover
-          "--sidebar-border": "240 4% 16%", // subtle border
-          "--sidebar-primary": "262 83% 62%", // indigo accent
+          "--sidebar-background": "240 6% 7%",
+          "--sidebar-foreground": "0 0% 90%",
+          "--sidebar-accent": "240 5% 15%",
+          "--sidebar-accent-foreground": "0 0% 100%",
+          "--sidebar-border": "240 4% 16%",
+          "--sidebar-primary": "262 83% 62%",
           "--sidebar-primary-foreground": "0 0% 100%",
         } as React.CSSProperties
       }
       className="border-r border-zinc-800">
-      {/* ── Header ───────────────────────────────────────────── */}
-
-      {/* ── Nav Menu ─────────────────────────────────────────── */}
+      {/* ── Nav ────────────────────────────────────────────── */}
       <SidebarContent className="px-2 py-3">
         <SidebarGroup>
           <SidebarGroupLabel className="mb-2 px-2 text-xs font-semibold uppercase tracking-widest text-zinc-500">
@@ -97,7 +94,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* ── Footer: Profile Dropdown ─────────────────────────── */}
+      {/* ── Footer Dropdown ────────────────────────────────── */}
       <SidebarFooter className="border-t border-zinc-800 p-3">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -106,11 +103,9 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   className="w-full rounded-xl bg-zinc-800/50 hover:bg-zinc-800 text-white hover:text-white transition-all duration-200 data-[state=open]:bg-zinc-800 px-3 py-2 h-auto">
-                  {/* Avatar */}
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold ring-2 ring-white/10 shadow-md">
                     WA
                   </div>
-                  {/* Info */}
                   <div className="flex flex-col truncate min-w-0 ml-1">
                     <span className="truncate text-sm font-semibold text-zinc-100">
                       Waseem Akram 021
@@ -123,13 +118,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
 
-              {/* Dropdown */}
               <DropdownMenuContent
                 side="top"
                 align="end"
                 sideOffset={8}
                 className="w-64 rounded-2xl bg-zinc-900 border border-zinc-800 p-0 shadow-2xl shadow-black/70 text-zinc-100 overflow-hidden">
-                {/* Profile Card */}
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-3 px-4 py-4 bg-gradient-to-br from-indigo-950/60 to-purple-950/60 border-b border-zinc-800">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 font-bold text-white shadow-lg ring-2 ring-white/10">
@@ -145,21 +138,16 @@ export function AppSidebar() {
                       </span>
                       <span className="flex items-center gap-1 text-xs text-zinc-500">
                         <MapPin className="h-3 w-3" />
-                        Sargodha, Pakistan
+                        Karachi, Pakistan
                       </span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
 
-                {/* Actions */}
-                <div className="p-1.5 space-y-0.5">
+                <div className="p-1.5">
                   <DropdownMenuItem
                     className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/15 hover:text-red-300 focus:bg-red-500/15 focus:text-red-300 cursor-pointer transition-colors"
-                    onClick={() => {
-                      // 👉 Add your signout logic here:
-                      // signOut() from NextAuth or redirect to /signout
-                      console.log("Sign out");
-                    }}>
+                    onClick={() => console.log("Sign out")}>
                     <LogOut className="h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>

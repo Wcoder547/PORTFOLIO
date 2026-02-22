@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, DragEvent } from "react";
+import { useState, useRef, DragEvent, useEffect } from "react";
+
+import { toast } from "sonner";
 import {
   User2,
   FileText,
   Save,
-  Upload,
   Camera,
   X,
   Download,
@@ -19,10 +20,13 @@ import {
   ChevronRight,
   Phone,
   AlertCircle,
+  Pencil,
+  Plus,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// ─── Social SVG Icons ─────────────────────────────────────────────────────────
+// ─── Social SVG Icons ────────────────────────────────────────────────────────
 const GithubIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.04.13 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z" />
@@ -64,7 +68,7 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface SocialLinks {
   github: string;
   linkedin: string;
@@ -74,13 +78,16 @@ interface SocialLinks {
   upwork: string;
   gmail: string;
 }
-interface FormData {
+interface ProfileData {
   headline: string;
   description: string;
   whatsapp: string;
   cvUrl: string;
   socials: SocialLinks;
 }
+type SavedProfile = ProfileData & {
+  image: { public_id: string; url: string } | null;
+};
 interface FormErrors {
   headline?: string;
   description?: string;
@@ -90,9 +97,9 @@ interface FormErrors {
   socials: Partial<SocialLinks>;
 }
 
-// ─── Validators ───────────────────────────────────────────────────────────────
+// ─── Validators ──────────────────────────────────────────────────────────────
 const isValidUrl = (val: string) => {
-  if (!val) return true; // optional
+  if (!val) return true;
   try {
     new URL(val);
     return true;
@@ -109,12 +116,12 @@ const isValidWhatsApp = (val: string) => {
   return /^\d{10,15}$/.test(val);
 };
 
-// ─── Social fields config ─────────────────────────────────────────────────────
+// ─── Social fields ───────────────────────────────────────────────────────────
 const socialFields = [
   {
     key: "github",
     label: "GitHub",
-    placeholder: "https://github.com/username",
+    placeholder: "https://github.com/yourname",
     Icon: GithubIcon,
     color: "text-white",
     bg: "bg-zinc-700",
@@ -124,7 +131,7 @@ const socialFields = [
   {
     key: "linkedin",
     label: "LinkedIn",
-    placeholder: "https://linkedin.com/in/username",
+    placeholder: "https://linkedin.com/in/yourname",
     Icon: LinkedinIcon,
     color: "text-blue-400",
     bg: "bg-blue-500/15",
@@ -133,8 +140,8 @@ const socialFields = [
   },
   {
     key: "twitter",
-    label: "X (Twitter)",
-    placeholder: "https://x.com/username",
+    label: "X / Twitter",
+    placeholder: "https://x.com/yourhandle",
     Icon: TwitterXIcon,
     color: "text-zinc-200",
     bg: "bg-zinc-700",
@@ -144,7 +151,7 @@ const socialFields = [
   {
     key: "instagram",
     label: "Instagram",
-    placeholder: "https://instagram.com/username",
+    placeholder: "https://instagram.com/yourhandle",
     Icon: InstagramIcon,
     color: "text-pink-400",
     bg: "bg-pink-500/15",
@@ -154,7 +161,7 @@ const socialFields = [
   {
     key: "fiverr",
     label: "Fiverr",
-    placeholder: "https://fiverr.com/username",
+    placeholder: "https://fiverr.com/yourname",
     Icon: FiverrIcon,
     color: "text-emerald-400",
     bg: "bg-emerald-500/15",
@@ -164,7 +171,7 @@ const socialFields = [
   {
     key: "upwork",
     label: "Upwork",
-    placeholder: "https://upwork.com/freelancers/username",
+    placeholder: "https://upwork.com/freelancers/yourname",
     Icon: UpworkIcon,
     color: "text-green-400",
     bg: "bg-green-500/15",
@@ -173,7 +180,7 @@ const socialFields = [
   },
   {
     key: "gmail",
-    label: "Gmail / Email",
+    label: "Email",
     placeholder: "yourname@gmail.com",
     Icon: GmailIcon,
     color: "text-red-400",
@@ -183,7 +190,7 @@ const socialFields = [
   },
 ];
 
-// ─── Error message component ──────────────────────────────────────────────────
+// ─── Field Error ─────────────────────────────────────────────────────────────
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return (
@@ -194,70 +201,94 @@ function FieldError({ msg }: { msg?: string }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Empty form ──────────────────────────────────────────────────────────────
+const emptyForm: ProfileData = {
+  headline: "",
+  description: "",
+  whatsapp: "",
+  cvUrl: "",
+  socials: {
+    github: "",
+    linkedin: "",
+    twitter: "",
+    instagram: "",
+    fiverr: "",
+    upwork: "",
+    gmail: "",
+  },
+};
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function UserPage() {
-  const [form, setForm] = useState<FormData>({
-    headline: "",
-    description: "",
-    whatsapp: "",
-    cvUrl: "",
-    socials: {
-      github: "",
-      linkedin: "",
-      twitter: "",
-      instagram: "",
-      fiverr: "",
-      upwork: "",
-      gmail: "",
-    },
-  });
+  const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const [form, setForm] = useState<ProfileData>(emptyForm);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({ socials: {} });
   const [touched, setTouched] = useState<Set<string>>(new Set());
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cvInputRef = useRef<HTMLInputElement>(null);
+  // Load existing profile on page mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/admin/user");
+        const data = await res.json();
+        if (data.success && data.data) {
+          setSavedProfile(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      }
+    };
 
-  // ── Validation ─────────────────────────────────────────────────────────────
-  const validate = (data: FormData, img: string | null): FormErrors => {
+    fetchProfile();
+  }, []);
+
+  const validate = (
+    data: ProfileData,
+    img: string | null,
+    existingProfile?: boolean,
+  ): FormErrors => {
     const e: FormErrors = { socials: {} };
 
     if (!data.headline.trim()) e.headline = "Headline is required.";
     else if (data.headline.trim().length < 5)
-      e.headline = "Headline must be at least 5 characters.";
+      e.headline = "Minimum 5 characters.";
     else if (data.headline.length > 100)
-      e.headline = "Headline must be under 100 characters.";
+      e.headline = "Keep it under 100 characters.";
 
     if (!data.description.trim()) e.description = "Bio is required.";
     else if (data.description.trim().length < 20)
-      e.description = "Bio must be at least 20 characters.";
+      e.description = "Write at least 20 characters.";
     else if (data.description.length > 500)
-      e.description = "Bio must be under 500 characters.";
+      e.description = "Max 500 characters.";
 
     if (data.whatsapp && !isValidWhatsApp(data.whatsapp))
-      e.whatsapp = "Enter digits only with country code, e.g. 923001234567";
-
+      e.whatsapp = "Numbers only, include country code — e.g. 923001234567";
     if (data.cvUrl && !isValidUrl(data.cvUrl))
-      e.cvUrl = "Enter a valid URL (must start with https://).";
+      e.cvUrl =
+        "Doesn't look like a valid URL. Make sure it starts with https://";
 
-    if (!img) e.image = "Profile photo is required.";
+    if (!existingProfile && !img) {
+      e.image = "Profile photo is required";
+    }
 
     socialFields.forEach(({ key, isEmail }) => {
       const val = data.socials[key as keyof SocialLinks];
-      if (isEmail) {
-        if (!isValidEmail(val))
-          e.socials[key as keyof SocialLinks] = "Enter a valid email address.";
-      } else {
-        if (!isValidUrl(val))
-          e.socials[key as keyof SocialLinks] =
-            "Enter a valid URL (e.g. https://...).";
-      }
+      if (isEmail && !isValidEmail(val))
+        e.socials[key as keyof SocialLinks] =
+          "That doesn't look like a valid email.";
+      else if (!isEmail && !isValidUrl(val))
+        e.socials[key as keyof SocialLinks] =
+          "Enter a full URL starting with https://";
     });
-
     return e;
   };
 
@@ -306,8 +337,39 @@ export default function UserPage() {
     touch(`social_${key}`);
   };
 
+  const openEdit = async () => {
+    if (savedProfile) {
+      // Load existing
+      setForm({
+        headline: savedProfile.headline,
+        description: savedProfile.description,
+        whatsapp: savedProfile.whatsapp || "",
+        cvUrl: savedProfile.cvUrl || "",
+        socials: savedProfile.socials,
+      });
+      setImagePreview(savedProfile.image?.url || null);
+    } else {
+      // Reset to empty
+      setForm(emptyForm);
+      setImagePreview(null);
+    }
+
+    setErrors({ socials: {} });
+    setTouched(new Set());
+    setIsEditing(true);
+  };
+
+  const closeForm = () => {
+    setIsEditing(false);
+    setForm(emptyForm);
+    setImagePreview(null);
+    setErrors({ socials: {} });
+    setTouched(new Set());
+    setConfirmClear(false);
+  };
+
   const handleSave = async () => {
-    // Mark all fields touched on submit
+    // ── Final validation ───────────────────────────────────────────────────────
     const allFields = new Set([
       "headline",
       "description",
@@ -316,27 +378,92 @@ export default function UserPage() {
       "image",
       ...socialFields.map((s) => `social_${s.key}`),
     ]);
-    setTouched(allFields);
 
+    setTouched(allFields);
     const e = validate(form, imagePreview);
     setErrors(e);
+
     if (hasErrors(e)) return;
 
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    // 👉 Replace with: await fetch("/api/user", { method: "POST", body: JSON.stringify({ ...form, image: imagePreview }) })
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+
+    // ── Create FormData ────────────────────────────────────────────────────────
+    const formData = new FormData();
+
+    formData.append("headline", form.headline);
+    formData.append("description", form.description);
+    formData.append("whatsapp", form.whatsapp || "");
+    formData.append("cvUrl", form.cvUrl || "");
+
+    // Socials as JSON string
+    formData.append("socials", JSON.stringify(form.socials));
+
+    // Convert imagePreview (base64) → File
+    if (imagePreview) {
+      const response = await fetch(imagePreview);
+      const blob = await response.blob();
+      const imageFile = new File([blob], "profile.jpg", {
+        type: blob.type || "image/jpeg",
+      });
+      formData.append("image", imageFile);
+    }
+
+    try {
+      const response = await fetch("/api/admin/user", {
+        method: "POST",
+        body: formData, // ← No Content-Type header — browser sets multipart/form-data automatically
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSavedProfile(data.data);
+        setSaved(true);
+        toast.success(data.message);
+
+        setTimeout(() => {
+          setSaved(false);
+          closeForm();
+        }, 1500);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Upload failed — check network");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Live re-validate on change
+  const handleClearConfirm = async () => {
+    setClearing(true);
+
+    try {
+      const response = await fetch("/api/admin/user", {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSavedProfile(null);
+        toast.success("Profile cleared");
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Failed to clear profile");
+    } finally {
+      setClearing(false);
+      setConfirmClear(false);
+    }
+  };
+
   const liveErrors = validate(form, imagePreview);
-  const getErr = (field: string) =>
-    touched.has(field)
-      ? ((liveErrors as unknown as Record<string, unknown>)[field] as
-          | string
-          | undefined)
+  const getErr = (f: string) =>
+    touched.has(f)
+      ? (liveErrors as Record<string, string | undefined>)[f]
       : undefined;
   const getSocialErr = (key: string) =>
     touched.has(`social_${key}`)
@@ -344,16 +471,20 @@ export default function UserPage() {
       : undefined;
 
   const inputClass = (err?: string) =>
-    `w-full rounded-xl bg-zinc-800/70 border px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 transition-all hover:border-zinc-600 ${
+    `w-full rounded-xl bg-zinc-800/70 border px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 transition-all hover:border-zinc-600 ${
       err
         ? "border-red-500/60 focus:ring-red-500/30 focus:border-red-500/40"
         : "border-zinc-700/50 focus:ring-indigo-500/50 focus:border-indigo-500/30"
     }`;
 
+  const filledSocials = savedProfile
+    ? Object.values(savedProfile.socials).filter(Boolean).length
+    : 0;
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* ── Page Header ─────────────────────────────────────────── */}
+        {/* ── Header ──────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-2">
@@ -368,453 +499,615 @@ export default function UserPage() {
               User Profile
             </h1>
             <p className="text-sm text-zinc-500 mt-1 ml-12">
-              Your identity on the public-facing portfolio site.
+              This shows up on your public portfolio site.
             </p>
           </div>
           <button
-            onClick={handleSave}
-            disabled={saving || saved}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-lg shrink-0 ${
-              saved
-                ? "bg-emerald-500/90 text-white shadow-emerald-500/20"
-                : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-indigo-500/25 hover:scale-105 active:scale-95"
-            } disabled:opacity-60 disabled:cursor-not-allowed`}>
-            {saving ? (
+            onClick={openEdit}
+            disabled={isEditing}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/25 hover:from-indigo-400 hover:to-purple-500 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shrink-0">
+            {savedProfile ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                Saved!
+                <Pencil className="h-4 w-4" />
+                Edit Profile
               </>
             ) : (
               <>
-                <Save className="h-4 w-4" />
-                Save Changes
+                <Plus className="h-4 w-4" />
+                Set Up Profile
               </>
             )}
           </button>
         </div>
 
-        {/* ── Row 1: Picture + Basic Info ─────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Picture */}
-          <div
-            className={`rounded-2xl border bg-zinc-900/60 p-6 flex flex-col items-center gap-5 transition-colors ${
-              getErr("image") ? "border-red-500/40" : "border-zinc-800"
-            }`}>
-            <div className="self-start flex items-center gap-2">
-              <Camera className="h-4 w-4 text-indigo-400" />
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                Photo
-              </span>
-              <span className="text-red-400 text-xs ml-1">*</span>
-            </div>
-
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`relative w-40 h-40 rounded-full cursor-pointer group transition-all duration-300 ${
-                isDragging
-                  ? "ring-4 ring-indigo-400 ring-offset-4 ring-offset-zinc-900 scale-105"
-                  : getErr("image")
-                    ? "ring-2 ring-red-500/60 hover:ring-red-400/80"
-                    : "ring-2 ring-zinc-700 hover:ring-indigo-500/70 hover:scale-[1.02]"
-              }`}>
-              {imagePreview ? (
-                <>
-                  <Image
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full rounded-full object-cover"
-                    width={160}
-                    height={160}
-                  />
-                  <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                    <Camera className="h-7 w-7 text-white" />
-                    <span className="text-xs text-zinc-300">Change</span>
-                  </div>
-                </>
-              ) : (
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-zinc-800 to-zinc-700/60 flex flex-col items-center justify-center gap-2">
-                  <ImagePlus
-                    className={`h-9 w-9 transition-colors ${getErr("image") ? "text-red-400" : "text-zinc-500 group-hover:text-indigo-400"}`}
-                  />
-                  <span
-                    className={`text-xs transition-colors ${getErr("image") ? "text-red-400" : "text-zinc-600 group-hover:text-zinc-400"}`}>
-                    Upload
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImageSelect(f);
-                touch("image");
-              }}
-            />
-
-            <div className="text-center space-y-1">
-              <p className="text-xs text-zinc-400 font-medium">
-                Click or drag & drop
-              </p>
-              <p className="text-xs text-zinc-600">JPG, PNG, WEBP · Max 5MB</p>
-            </div>
-
-            <FieldError msg={getErr("image")} />
-
-            {imagePreview && (
-              <button
-                onClick={() => {
-                  setImagePreview(null);
-                  touch("image");
-                }}
-                className="flex items-center gap-1.5 text-xs text-red-400/80 hover:text-red-400 transition-colors">
-                <Trash2 className="h-3.5 w-3.5" /> Remove photo
-              </button>
-            )}
-          </div>
-
-          {/* Headline + Description */}
-          <div className="lg:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-400" />
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                Basic Info
-              </span>
-            </div>
-
-            {/* Headline */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                Headline <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.headline}
-                onChange={(e) => {
-                  setForm({ ...form, headline: e.target.value });
-                  touch("headline");
-                }}
-                onBlur={() => touch("headline")}
-                placeholder="e.g. Full-Stack Developer & Open Source Enthusiast"
-                className={inputClass(getErr("headline"))}
-              />
-              <div className="flex items-start justify-between gap-2">
-                {getErr("headline") ? (
-                  <FieldError msg={getErr("headline")} />
-                ) : (
-                  <p className="text-xs text-zinc-600">
-                    Shown below your name in the hero section.
-                  </p>
-                )}
-                <span
-                  className={`text-xs font-mono shrink-0 ${form.headline.length > 90 ? "text-amber-400" : "text-zinc-600"}`}>
-                  {form.headline.length}/100
-                </span>
+        {/* ── Form ────────────────────────────────────────────────── */}
+        <AnimatePresence>
+          {isEditing && (
+            <motion.div
+              initial={{ opacity: 0, y: -12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="rounded-2xl border border-indigo-500/30 bg-zinc-900/80 shadow-2xl shadow-indigo-500/5 overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-indigo-500/5">
+                <h2 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
+                  {savedProfile ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Edit Profile
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Set Up Profile
+                    </>
+                  )}
+                </h2>
+                <button
+                  onClick={closeForm}
+                  className="text-zinc-500 hover:text-zinc-300 transition-colors rounded-lg p-1 hover:bg-zinc-800">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-            </div>
 
-            {/* Description */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                Description / Bio <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => {
-                  setForm({ ...form, description: e.target.value });
-                  touch("description");
-                }}
-                onBlur={() => touch("description")}
-                rows={6}
-                placeholder="Write a short bio about yourself — what you build, what you love, your journey as a developer..."
-                className={`${inputClass(getErr("description"))} resize-none`}
-              />
-              <div className="flex items-start justify-between gap-2">
-                {getErr("description") ? (
-                  <FieldError msg={getErr("description")} />
-                ) : (
-                  <p className="text-xs text-zinc-600">
-                    Keep it short, engaging, and authentic.
-                  </p>
-                )}
-                <span
-                  className={`text-xs font-mono shrink-0 ${form.description.length > 450 ? "text-amber-400" : "text-zinc-600"}`}>
-                  {form.description.length}/500
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Social Links ─────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-5">
-          <div className="flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-indigo-400" />
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-              Social Links
-            </span>
-            <span className="ml-auto text-xs text-zinc-600">
-              All optional · URLs must start with https://
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            {socialFields.map(
-              ({ key, label, placeholder, Icon, color, bg, ring, isEmail }) => {
-                const err = getSocialErr(key);
-                const val = form.socials[key as keyof SocialLinks];
-                return (
-                  <div key={key} className="space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      <div
-                        className={`h-5 w-5 rounded-md ${bg} flex items-center justify-center`}>
-                        <Icon className={`h-3 w-3 ${color}`} />
-                      </div>
-                      {label}
-                    </label>
-                    <div className="relative">
-                      <div
-                        className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md ${bg} flex items-center justify-center pointer-events-none`}>
-                        <Icon className={`h-3 w-3 ${color}`} />
-                      </div>
-                      <input
-                        type={isEmail ? "email" : "text"}
-                        value={val}
-                        onChange={(e) => setSocial(key, e.target.value)}
-                        onBlur={() => touch(`social_${key}`)}
-                        placeholder={placeholder}
-                        className={`w-full rounded-xl bg-zinc-800/70 border pl-10 ${val ? "pr-9" : "pr-4"} py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 ${
-                          err
-                            ? "border-red-500/60 focus:ring-red-500/30"
-                            : `border-zinc-700/50 ${ring} focus:border-transparent hover:border-zinc-600`
-                        } transition-all`}
-                      />
-                      {val && !err && (
-                        <a
-                          href={isEmail ? `mailto:${val}` : val}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-indigo-400 transition-colors">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                      {err && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
-                          <AlertCircle className="h-3.5 w-3.5" />
+              <div className="p-6 space-y-6">
+                {/* ── Photo + Basic Info ─────────────────────────── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                  {/* Photo */}
+                  <div
+                    className={`rounded-2xl border bg-zinc-800/40 p-5 flex flex-col items-center gap-4 transition-colors ${getErr("image") ? "border-red-500/40" : "border-zinc-700/50"}`}>
+                    <div className="self-start flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-indigo-400" />
+                      <span className="text-xs font-semibold text-zinc-400">
+                        Photo <span className="text-red-400">*</span>
+                      </span>
+                    </div>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragging(true);
+                      }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`relative w-36 h-36 rounded-full cursor-pointer group transition-all duration-300 ${
+                        isDragging
+                          ? "ring-4 ring-indigo-400 ring-offset-4 ring-offset-zinc-900 scale-105"
+                          : getErr("image")
+                            ? "ring-2 ring-red-500/60"
+                            : "ring-2 ring-zinc-700 hover:ring-indigo-500/70 hover:scale-[1.02]"
+                      }`}>
+                      {imagePreview ? (
+                        <>
+                          <Image
+                            src={imagePreview}
+                            alt="Preview"
+                            fill
+                            className="rounded-full object-cover"
+                          />
+                          <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                            <Camera className="h-6 w-6 text-white" />
+                            <span className="text-xs text-zinc-300">
+                              Change
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-zinc-800 to-zinc-700/60 flex flex-col items-center justify-center gap-2">
+                          <ImagePlus
+                            className={`h-8 w-8 transition-colors ${getErr("image") ? "text-red-400" : "text-zinc-500 group-hover:text-indigo-400"}`}
+                          />
+                          <span
+                            className={`text-xs transition-colors ${getErr("image") ? "text-red-400" : "text-zinc-600 group-hover:text-zinc-400"}`}>
+                            Upload
+                          </span>
                         </div>
                       )}
                     </div>
-                    <FieldError msg={err} />
-                  </div>
-                );
-              },
-            )}
-          </div>
-        </div>
-
-        {/* ── Row 3: WhatsApp + CV ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* WhatsApp */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-5">
-            <div className="flex items-center gap-2">
-              <WhatsAppIcon className="h-4 w-4 text-emerald-400" />
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                WhatsApp
-              </span>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">
-                WhatsApp Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400 pointer-events-none" />
-                <input
-                  type="tel"
-                  value={form.whatsapp}
-                  onChange={(e) => {
-                    setForm({ ...form, whatsapp: e.target.value });
-                    touch("whatsapp");
-                  }}
-                  onBlur={() => touch("whatsapp")}
-                  placeholder="923001234567"
-                  className={`w-full rounded-xl bg-zinc-800/70 border pl-10 pr-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 transition-all hover:border-zinc-600 ${
-                    getErr("whatsapp")
-                      ? "border-red-500/60 focus:ring-red-500/30"
-                      : "border-zinc-700/50 focus:ring-emerald-500/40 focus:border-transparent"
-                  }`}
-                />
-              </div>
-              <FieldError msg={getErr("whatsapp")} />
-              {!getErr("whatsapp") && (
-                <p className="text-xs text-zinc-600">
-                  Digits only with country code, e.g.{" "}
-                  <span className="font-mono text-zinc-500">923001234567</span>
-                </p>
-              )}
-            </div>
-            {form.whatsapp && !getErr("whatsapp") && (
-              <div className="pt-1">
-                <p className="text-xs text-zinc-600 mb-2">
-                  Preview on frontend:
-                </p>
-                <a
-                  href={`https://wa.me/${form.whatsapp}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/25 transition-all">
-                  <WhatsAppIcon className="h-4 w-4" />
-                  Chat on WhatsApp
-                  <ExternalLink className="h-3.5 w-3.5 opacity-60" />
-                </a>
-              </div>
-            )}
-          </div>
-
-          {/* CV Upload */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-5">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-amber-400" />
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                Resume / CV
-              </span>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">
-                  Direct Link (Drive / Cloudinary / Any URL)
-                </label>
-                <input
-                  type="url"
-                  value={form.cvUrl}
-                  onChange={(e) => {
-                    setForm({ ...form, cvUrl: e.target.value });
-                    touch("cvUrl");
-                  }}
-                  onBlur={() => touch("cvUrl")}
-                  placeholder="https://drive.google.com/file/d/..."
-                  className={inputClass(getErr("cvUrl"))}
-                />
-                <FieldError msg={getErr("cvUrl")} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">
-                  Or Upload PDF
-                </label>
-                <div
-                  onClick={() => cvInputRef.current?.click()}
-                  className="flex items-center gap-3 rounded-xl border-2 border-dashed border-zinc-700 hover:border-amber-500/50 bg-zinc-800/20 hover:bg-amber-500/5 p-4 cursor-pointer transition-all group">
-                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
-                    <Upload className="h-5 w-5 text-amber-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors truncate">
-                      {cvFile ? cvFile.name : "Click to upload PDF"}
-                    </p>
-                    <p className="text-xs text-zinc-600">
-                      PDF format · Max 10MB
-                    </p>
-                  </div>
-                  {cvFile && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCvFile(null);
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleImageSelect(f);
+                        touch("image");
                       }}
-                      className="ml-auto text-zinc-600 hover:text-red-400 transition-colors shrink-0">
-                      <X className="h-4 w-4" />
+                    />
+                    <p className="text-xs text-zinc-600 text-center">
+                      JPG, PNG or WEBP — max 5MB
+                    </p>
+                    <FieldError msg={getErr("image")} />
+                    {imagePreview && (
+                      <button
+                        onClick={() => {
+                          setImagePreview(null);
+                          touch("image");
+                        }}
+                        className="flex items-center gap-1.5 text-xs text-red-400/80 hover:text-red-400 transition-colors">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Headline + Bio */}
+                  <div className="lg:col-span-2 rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-5 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-indigo-400" />
+                      <span className="text-xs font-semibold text-zinc-400">
+                        Basic Info
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-400 flex items-center gap-1">
+                        Headline <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.headline}
+                        onChange={(e) => {
+                          setForm({ ...form, headline: e.target.value });
+                          touch("headline");
+                        }}
+                        onBlur={() => touch("headline")}
+                        placeholder="e.g. Full-Stack Developer & Open Source Contributor"
+                        className={inputClass(getErr("headline"))}
+                      />
+                      <div className="flex items-start justify-between gap-2">
+                        {getErr("headline") ? (
+                          <FieldError msg={getErr("headline")} />
+                        ) : (
+                          <p className="text-xs text-zinc-600">
+                            Shows right below your name on the site.
+                          </p>
+                        )}
+                        <span
+                          className={`text-xs font-mono shrink-0 ${form.headline.length > 90 ? "text-amber-400" : "text-zinc-600"}`}>
+                          {form.headline.length}/100
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-400 flex items-center gap-1">
+                        Bio <span className="text-red-400">*</span>
+                      </label>
+                      <textarea
+                        value={form.description}
+                        onChange={(e) => {
+                          setForm({ ...form, description: e.target.value });
+                          touch("description");
+                        }}
+                        onBlur={() => touch("description")}
+                        rows={5}
+                        placeholder="Tell people who you are, what you love building, and a bit about your journey..."
+                        className={`${inputClass(getErr("description"))} resize-none`}
+                      />
+                      <div className="flex items-start justify-between gap-2">
+                        {getErr("description") ? (
+                          <FieldError msg={getErr("description")} />
+                        ) : (
+                          <p className="text-xs text-zinc-600">
+                            Keep it real — people connect with genuine bios.
+                          </p>
+                        )}
+                        <span
+                          className={`text-xs font-mono shrink-0 ${form.description.length > 450 ? "text-amber-400" : "text-zinc-600"}`}>
+                          {form.description.length}/500
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Social Links ──────────────────────────────────── */}
+                <div className="rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-4 w-4 text-indigo-400" />
+                    <span className="text-xs font-semibold text-zinc-400">
+                      Social Links
+                    </span>
+                    <span className="ml-auto text-xs text-zinc-600">
+                      all optional
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {socialFields.map(
+                      ({
+                        key,
+                        label,
+                        placeholder,
+                        Icon,
+                        color,
+                        bg,
+                        ring,
+                        isEmail,
+                      }) => {
+                        const err = getSocialErr(key);
+                        const val = form.socials[key as keyof SocialLinks];
+                        return (
+                          <div key={key} className="space-y-1.5">
+                            {/* Label — text only, no duplicate icon */}
+                            <label className="text-xs font-semibold text-zinc-400 block">
+                              {label}
+                            </label>
+                            <div className="relative">
+                              {/* Icon inside input — appears once */}
+                              <div
+                                className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md ${bg} flex items-center justify-center pointer-events-none`}>
+                                <Icon className={`h-3 w-3 ${color}`} />
+                              </div>
+                              <input
+                                type={isEmail ? "email" : "text"}
+                                value={val}
+                                onChange={(e) => setSocial(key, e.target.value)}
+                                onBlur={() => touch(`social_${key}`)}
+                                placeholder={placeholder}
+                                className={`w-full rounded-xl bg-zinc-800/70 border pl-10 ${val ? "pr-9" : "pr-4"} py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 ${
+                                  err
+                                    ? "border-red-500/60 focus:ring-red-500/30"
+                                    : `border-zinc-700/50 ${ring} focus:border-transparent hover:border-zinc-600`
+                                } transition-all`}
+                              />
+                              {val && !err && (
+                                <a
+                                  href={isEmail ? `mailto:${val}` : val}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-indigo-400 transition-colors">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                              {err && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                                  <AlertCircle className="h-3.5 w-3.5" />
+                                </div>
+                              )}
+                            </div>
+                            <FieldError msg={err} />
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+
+                {/* ── WhatsApp + CV ──────────────────────────────────── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* WhatsApp */}
+                  <div className="rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-5 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <WhatsAppIcon className="h-4 w-4 text-emerald-400" />
+                      <span className="text-xs font-semibold text-zinc-400">
+                        WhatsApp
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-400 block">
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400 pointer-events-none" />
+                        <input
+                          type="tel"
+                          value={form.whatsapp}
+                          onChange={(e) => {
+                            setForm({ ...form, whatsapp: e.target.value });
+                            touch("whatsapp");
+                          }}
+                          onBlur={() => touch("whatsapp")}
+                          placeholder="e.g. 923001234567"
+                          className={`w-full rounded-xl bg-zinc-800/70 border pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 transition-all hover:border-zinc-600 ${
+                            getErr("whatsapp")
+                              ? "border-red-500/60 focus:ring-red-500/30"
+                              : "border-zinc-700/50 focus:ring-emerald-500/40 focus:border-transparent"
+                          }`}
+                        />
+                      </div>
+                      <FieldError msg={getErr("whatsapp")} />
+                      {!getErr("whatsapp") && (
+                        <p className="text-xs text-zinc-600">
+                          Numbers only, with country code — no spaces or dashes.
+                        </p>
+                      )}
+                    </div>
+                    {form.whatsapp && !getErr("whatsapp") && (
+                      <a
+                        href={`https://wa.me/${form.whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/25 transition-all">
+                        <WhatsAppIcon className="h-4 w-4" />
+                        Test link
+                        <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* CV — link only, no file upload */}
+                  <div className="rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-5 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-amber-400" />
+                      <span className="text-xs font-semibold text-zinc-400">
+                        Resume / CV
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-400 block">
+                        Google Drive Link
+                      </label>
+                      <input
+                        type="url"
+                        value={form.cvUrl}
+                        onChange={(e) => {
+                          setForm({ ...form, cvUrl: e.target.value });
+                          touch("cvUrl");
+                        }}
+                        onBlur={() => touch("cvUrl")}
+                        placeholder="Paste your Google Drive or Dropbox link here"
+                        className={inputClass(getErr("cvUrl"))}
+                      />
+                      <FieldError msg={getErr("cvUrl")} />
+                      {!getErr("cvUrl") && !form.cvUrl && (
+                        <p className="text-xs text-zinc-600">
+                          Make sure the link is set to public / anyone with
+                          link.
+                        </p>
+                      )}
+                    </div>
+                    {form.cvUrl && !getErr("cvUrl") && (
+                      <div className="pt-2 border-t border-zinc-700/50">
+                        <p className="text-xs text-zinc-600 mb-2 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                          Preview of what visitors will see:
+                        </p>
+                        <a
+                          href={form.cvUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20">
+                          <Download className="h-4 w-4" />
+                          Download CV
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Actions ───────────────────────────────────────── */}
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+                  {touched.size > 0 && hasErrors(liveErrors) && (
+                    <p className="flex items-center gap-1.5 text-xs text-red-400">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      There are a few errors above — fix them first.
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3 ml-auto">
+                    <button
+                      onClick={closeForm}
+                      className="px-4 py-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 text-sm font-medium hover:bg-zinc-800/50 transition-all">
+                      Cancel
                     </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || saved}
+                      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-lg ${
+                        saved
+                          ? "bg-emerald-500 text-white"
+                          : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-indigo-500/25"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}>
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : saved ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Saved!
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          {savedProfile ? "Save Changes" : "Create Profile"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Profile Preview Card ────────────────────────────────── */}
+        <AnimatePresence>
+          {savedProfile && !isEditing && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              className="rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-800/60 bg-zinc-900/40">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs text-zinc-400 font-medium">
+                    Live on portfolio
+                  </span>
+                  <span className="text-zinc-700">·</span>
+                  <span className="text-xs text-zinc-600">
+                    {filledSocials}/{socialFields.length} socials linked
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {confirmClear ? (
+                    <>
+                      <span className="text-xs text-red-300">
+                        Are you sure?
+                      </span>
+                      <button
+                        onClick={handleClearConfirm}
+                        disabled={clearing}
+                        className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg transition-all disabled:opacity-50">
+                        {clearing ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                        Yes, clear
+                      </button>
+                      <button
+                        onClick={() => setConfirmClear(false)}
+                        className="text-xs text-zinc-500 hover:text-zinc-300 px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 transition-all">
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setConfirmClear(true)}
+                        className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-all">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Clear
+                      </button>
+                      <button
+                        onClick={openEdit}
+                        className="flex items-center gap-1.5 text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg font-semibold transition-all">
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit Profile
+                      </button>
+                    </>
                   )}
                 </div>
-                <input
-                  ref={cvInputRef}
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 10 * 1024 * 1024) {
-                      alert("PDF must be under 10MB.");
-                      return;
-                    }
-                    setCvFile(f);
-                  }}
-                />
               </div>
 
-              {(form.cvUrl && !getErr("cvUrl")) || cvFile ? (
-                <div className="pt-3 border-t border-zinc-800">
-                  <p className="text-xs text-zinc-600 mb-3 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    Button shown on your public portfolio:
-                  </p>
-                  <a
-                    href={form.cvUrl || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/25 hover:scale-105 active:scale-95">
-                    <Download className="h-4 w-4" />
-                    Download CV
-                  </a>
+              <div className="p-6 space-y-5">
+                <div className="flex gap-5">
+                  <div className="shrink-0">
+                    {savedProfile.image?.url ? (
+                      <Image
+                        src={savedProfile.image.url}
+                        alt="Profile"
+                        width={80}
+                        height={80}
+                        className="h-20 w-20 rounded-2xl object-cover ring-2 ring-zinc-700/50"
+                      />
+                    ) : (
+                      <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <User2 className="h-8 w-8 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <h2 className="text-xl font-black text-white leading-tight">
+                      {savedProfile.headline}
+                    </h2>
+                    <p className="text-sm text-zinc-400 leading-relaxed line-clamp-4">
+                      {savedProfile.description}
+                    </p>
+                  </div>
                 </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
 
-        {/* ── Bottom Save ──────────────────────────────────────────── */}
-        <div className="flex items-center justify-between pb-6">
-          {/* Error summary */}
-          {touched.size > 0 && hasErrors(liveErrors) && (
-            <p className="flex items-center gap-2 text-sm text-red-400">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              Please fix the errors above before saving.
-            </p>
+                {filledSocials > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-zinc-500 flex items-center gap-2">
+                      <Link2 className="h-3.5 w-3.5 text-indigo-400" />
+                      Social Links
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {socialFields.map(
+                        ({ key, label, Icon, color, bg, isEmail }) => {
+                          const val =
+                            savedProfile.socials[key as keyof SocialLinks];
+                          if (!val) return null;
+                          return (
+                            <a
+                              key={key}
+                              href={isEmail ? `mailto:${val}` : val}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700/40 hover:border-zinc-600 hover:bg-zinc-800 transition-all group">
+                              <div
+                                className={`h-6 w-6 rounded-md ${bg} flex items-center justify-center shrink-0`}>
+                                <Icon className={`h-3.5 w-3.5 ${color}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-zinc-400 leading-none mb-0.5">
+                                  {label}
+                                </p>
+                                <p className="text-xs text-zinc-300 truncate">
+                                  {val}
+                                </p>
+                              </div>
+                              <ExternalLink className="h-3.5 w-3.5 text-zinc-600 group-hover:text-indigo-400 transition-colors shrink-0" />
+                            </a>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(savedProfile.whatsapp || savedProfile.cvUrl) && (
+                  <div className="flex flex-wrap gap-3 pt-2 border-t border-zinc-800/60">
+                    {savedProfile.whatsapp && (
+                      <a
+                        href={`https://wa.me/${savedProfile.whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/20 transition-all">
+                        <WhatsAppIcon className="h-4 w-4" />
+                        Chat on WhatsApp
+                        <ExternalLink className="h-3 w-3 opacity-60" />
+                      </a>
+                    )}
+                    {savedProfile.cvUrl && (
+                      <a
+                        href={savedProfile.cvUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-500/25 text-amber-300 text-sm font-semibold hover:from-amber-500/25 hover:to-orange-500/25 transition-all">
+                        <Download className="h-4 w-4" />
+                        Download CV
+                        <ExternalLink className="h-3 w-3 opacity-60" />
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           )}
-          <div className="ml-auto">
-            <button
-              onClick={handleSave}
-              disabled={saving || saved}
-              className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all duration-200 shadow-xl ${
-                saved
-                  ? "bg-emerald-500 text-white shadow-emerald-500/20"
-                  : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-indigo-500/25 hover:scale-105 active:scale-95"
-              } disabled:opacity-60 disabled:cursor-not-allowed`}>
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving Changes...
-                </>
-              ) : saved ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  All Changes Saved!
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save All Changes
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        </AnimatePresence>
+
+        {/* ── Empty state ──────────────────────────────────────────── */}
+        <AnimatePresence>
+          {!savedProfile && !isEditing && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-zinc-800">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-indigo-500/20 flex items-center justify-center mb-4">
+                <User2 className="h-8 w-8 text-indigo-400/60" />
+              </div>
+              <p className="text-zinc-400 font-semibold text-lg">
+                Nothing here yet.
+              </p>
+              <p className="text-xs text-zinc-600 mt-1 mb-5">
+                Your portfolio hero will be blank until you fill this in.
+              </p>
+              <button
+                onClick={openEdit}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/25 hover:from-indigo-400 hover:to-purple-500 hover:scale-105 active:scale-95 transition-all">
+                <Plus className="h-4 w-4" />
+                Set Up Profile
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, DragEvent } from "react";
+import { useState, useEffect, useCallback, useRef, DragEvent } from "react";
 import {
   Folder,
   Plus,
@@ -26,14 +26,25 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Project {
   id: string;
   title: string;
   description: string;
-  image: string | null; // base64 or URL
+  image: string | null;
   tech: string[];
   link: string;
+  company?: string;
+}
+
+// ─── API shape from MongoDB ───────────────────────────────────────────────────
+interface ProjectAPI {
+  _id: string;
+  title: string;
+  description: string;
+  thumbnail?: { public_id: string; url: string };
+  techStack: string[];
+  liveUrl?: string;
   company?: string;
 }
 
@@ -45,61 +56,16 @@ interface FormErrors {
   tech?: string;
 }
 
-// ─── Default data (mirrors your frontend) ─────────────────────────────────────
-const defaultProjects: Project[] = [
-  {
-    id: "1",
-    title: "Calm Llama - AI Chatbot",
-    description:
-      "A modern web platform that enables users to discover and book premium wellness experiences such as saunas, yoga, massages, and float tanks.",
-    image: null,
-    tech: [
-      "TypeScript",
-      "Stripe",
-      "React.js",
-      "Next.js",
-      "Tailwind",
-      "Shadcn UI",
-      "Node.js",
-      "Supabase",
-      "AI",
-    ],
-    link: "https://calmllama.life",
-    company: "ToraTec AI, Dublin",
-  },
-  {
-    id: "2",
-    title: "Mini Otio - AI Research Assistant",
-    description:
-      "AI-powered research assistant with real-time web search and intelligent response generation.",
-    image: null,
-    tech: [
-      "Next.js 15",
-      "TypeScript",
-      "Shadcn UI",
-      "AI SDK",
-      "OpenRouter",
-      "Exa.ai",
-    ],
-    link: "https://mini-otio.vercel.app",
-  },
-  {
-    id: "3",
-    title: "EC2 Cloud Cost Analyzer",
-    description:
-      "AWS EC2 cost analysis tool comparing instance costs with real-time pricing data.",
-    image: null,
-    tech: [
-      "TypeScript",
-      "React.js",
-      "Next.js",
-      "Shadcn UI",
-      "AWS EC2",
-      "CloudWatch",
-    ],
-    link: "https://ec2-observe.vercel.app",
-  },
-];
+// ─── Normalize MongoDB → frontend ────────────────────────────────────────────
+const normalize = (p: ProjectAPI): Project => ({
+  id: p._id,
+  title: p.title,
+  description: p.description,
+  image: p.thumbnail?.url ?? null,
+  tech: p.techStack ?? [],
+  link: p.liveUrl ?? "",
+  company: p.company ?? "",
+});
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const isValidUrl = (v: string) => {
@@ -116,17 +82,13 @@ const validate = (form: Omit<Project, "id">): FormErrors => {
   const e: FormErrors = {};
   if (!form.title.trim()) e.title = "Title is required.";
   else if (form.title.length > 100) e.title = "Max 100 characters.";
-
   if (!form.description.trim()) e.description = "Description is required.";
   else if (form.description.trim().length < 20)
     e.description = "At least 20 characters.";
   else if (form.description.length > 500) e.description = "Max 500 characters.";
-
   if (!form.link) e.link = "Live link is required.";
   else if (!isValidUrl(form.link)) e.link = "Enter a valid URL (https://...).";
-
   if (form.tech.length === 0) e.tech = "Add at least one tech tag.";
-
   return e;
 };
 
@@ -143,13 +105,11 @@ const tagColors = [
   "bg-orange-500/10 border-orange-500/30 text-orange-300",
 ];
 
-// ─── Field error component ─────────────────────────────────────────────────────
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return (
     <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1">
-      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-      {msg}
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {msg}
     </p>
   );
 }
@@ -165,28 +125,58 @@ const emptyForm: Omit<Project, "id"> = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>(defaultProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null); // actual File for upload
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [techInput, setTechInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  // ── 1. Fetch all on mount ──────────────────────────────────────────────────
+  const fetchProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      setFetchError(null);
+
+      const res = await fetch("/api/admin/api-projects");
+      const json = await res.json();
+
+      if (!res.ok) throw new Error(json.message || "Failed to fetch");
+      setProjects((json.data as ProjectAPI[]).map(normalize));
+    } catch (err: unknown) {
+      setFetchError(
+        err instanceof Error ? err.message : "Something went wrong",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const touch = (f: string) => setTouched((p) => new Set([...p, f]));
 
   const openAdd = () => {
     setForm(emptyForm);
+    setImageFile(null);
     setErrors({});
     setTouched(new Set());
     setTechInput("");
+    setSaveError(null);
     setEditingId("new");
   };
 
@@ -194,22 +184,26 @@ export default function ProjectsPage() {
     setForm({
       title: p.title,
       description: p.description,
-      image: p.image,
+      image: p.image, // existing Cloudinary URL
       tech: [...p.tech],
       link: p.link,
       company: p.company ?? "",
     });
+    setImageFile(null); // no new file yet
     setErrors({});
     setTouched(new Set());
     setTechInput("");
+    setSaveError(null);
     setEditingId(p.id);
   };
 
   const closeForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setImageFile(null);
     setErrors({});
     setTouched(new Set());
+    setSaveError(null);
   };
 
   const handleImageSelect = (file: File) => {
@@ -224,6 +218,7 @@ export default function ProjectsPage() {
       setErrors((e) => ({ ...e, image: "Image must be under 5MB." }));
       return;
     }
+    setImageFile(file); // store real File for FormData
     const reader = new FileReader();
     reader.onload = (ev) => {
       setForm((f) => ({ ...f, image: ev.target?.result as string }));
@@ -249,6 +244,7 @@ export default function ProjectsPage() {
   const removeTag = (tag: string) =>
     setForm((f) => ({ ...f, tech: f.tech.filter((t) => t !== tag) }));
 
+  // ── 2. Save — POST (new) or PUT (edit) with FormData ──────────────────────
   const handleSave = async () => {
     const allFields = new Set([
       "title",
@@ -263,30 +259,77 @@ export default function ProjectsPage() {
     if (hasErrors(e)) return;
 
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    // 👉 Replace with: await fetch("/api/projects", { method: editingId === "new" ? "POST" : "PUT", body: JSON.stringify(form) })
+    setSaveError(null);
 
-    if (editingId === "new") {
-      setProjects((prev) => [{ ...form, id: Date.now().toString() }, ...prev]);
-    } else {
-      setProjects((prev) =>
-        prev.map((p) => (p.id === editingId ? { ...form, id: editingId } : p)),
-      );
+    try {
+      const isNew = editingId === "new";
+      const url = isNew
+        ? "/api/admin/api-projects"
+        : `/api/admin/api-projects/${editingId}`;
+      const method = isNew ? "POST" : "PUT";
+
+      // ── Build FormData (backend uses req.formData()) ──────────────
+      const fd = new FormData();
+      fd.append("title", form.title.trim());
+      fd.append("description", form.description.trim());
+      fd.append("techStack", JSON.stringify(form.tech));
+      fd.append("liveUrl", form.link.trim());
+      fd.append("category", "fullstack");
+      fd.append("status", "completed");
+      fd.append("isVisible", "true");
+      if (form.company?.trim()) fd.append("company", form.company.trim());
+
+      // Only upload a new thumbnail if user selected a new file
+      if (imageFile) {
+        fd.append("thumbnail", imageFile);
+      }
+
+      // On PUT: if user cleared the existing image
+      if (!isNew && !form.image && !imageFile) {
+        fd.append("removeThumbnail", "true");
+      }
+
+      const res = await fetch(url, { method, body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to save");
+
+      const savedProject = normalize(json.data as ProjectAPI);
+
+      if (isNew) {
+        setProjects((prev) => [savedProject, ...prev]);
+      } else {
+        setProjects((prev) =>
+          prev.map((p) => (p.id === editingId ? savedProject : p)),
+        );
+      }
+
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        closeForm();
+      }, 1200);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      closeForm();
-    }, 1200);
   };
 
+  // ── 3. Delete ──────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
-    await new Promise((r) => setTimeout(r, 700));
-    // 👉 Replace with: await fetch(`/api/projects/${id}`, { method: "DELETE" })
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    setDeleteId(null);
+    try {
+      const res = await fetch(`/api/admin/api-projects/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to delete");
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: unknown) {
+      console.error("[Delete Project]", err);
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const liveErrors = validate(form);
@@ -301,6 +344,35 @@ export default function ProjectsPage() {
         ? "border-red-500/60 focus:ring-red-500/30"
         : "border-zinc-700/50 focus:ring-blue-500/40 focus:border-transparent"
     }`;
+
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
+          <p className="text-zinc-500 text-sm">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Fetch error state ─────────────────────────────────────────────────────
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle className="h-8 w-8 text-red-400" />
+          <p className="text-zinc-300 text-sm font-medium">{fetchError}</p>
+          <button
+            onClick={fetchProjects}
+            className="mt-2 px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-all">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -341,18 +413,15 @@ export default function ProjectsPage() {
               exit={{ opacity: 0, y: -12, scale: 0.98 }}
               transition={{ duration: 0.2 }}
               className="rounded-2xl border border-blue-500/30 bg-zinc-900/80 shadow-2xl shadow-blue-500/5 overflow-hidden">
-              {/* Form header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-blue-500/5">
                 <h2 className="text-sm font-bold text-blue-300 flex items-center gap-2">
                   {editingId === "new" ? (
                     <>
-                      <Plus className="h-4 w-4" />
-                      New Project
+                      <Plus className="h-4 w-4" /> New Project
                     </>
                   ) : (
                     <>
-                      <Pencil className="h-4 w-4" />
-                      Edit Project
+                      <Pencil className="h-4 w-4" /> Edit Project
                     </>
                   )}
                 </h2>
@@ -364,13 +433,12 @@ export default function ProjectsPage() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Row 1: Image + Title/Company */}
+                {/* Row 1: Image + Title/Company/Link */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {/* Image drop zone */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                      <Camera className="h-3.5 w-3.5 text-blue-400" />
-                      Thumbnail
+                      <Camera className="h-3.5 w-3.5 text-blue-400" /> Thumbnail
                     </label>
                     <div
                       onDragOver={(e) => {
@@ -394,6 +462,7 @@ export default function ProjectsPage() {
                             alt="Preview"
                             fill
                             className="object-cover"
+                            unoptimized
                           />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                             <Camera className="h-6 w-6 text-white" />
@@ -430,10 +499,12 @@ export default function ProjectsPage() {
                     />
                     {form.image && (
                       <button
-                        onClick={() => setForm((f) => ({ ...f, image: null }))}
+                        onClick={() => {
+                          setForm((f) => ({ ...f, image: null }));
+                          setImageFile(null);
+                        }}
                         className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors">
-                        <Trash2 className="h-3 w-3" />
-                        Remove image
+                        <Trash2 className="h-3 w-3" /> Remove image
                       </button>
                     )}
                     <FieldError msg={getErr("image")} />
@@ -527,7 +598,7 @@ export default function ProjectsPage() {
                     }}
                     onBlur={() => touch("description")}
                     rows={3}
-                    placeholder="What does this project do? What problem does it solve? What impact did it have?"
+                    placeholder="What does this project do? What problem does it solve?"
                     className={`${inputClass(getErr("description"))} resize-none`}
                   />
                   <div className="flex items-start justify-between gap-2">
@@ -595,12 +666,19 @@ export default function ProjectsPage() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-                  {hasErrors(liveErrors) && touched.size > 0 && (
-                    <p className="flex items-center gap-1.5 text-xs text-amber-400">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      Fill required fields to save.
-                    </p>
-                  )}
+                  <div>
+                    {hasErrors(liveErrors) && touched.size > 0 && (
+                      <p className="flex items-center gap-1.5 text-xs text-amber-400">
+                        <AlertCircle className="h-3.5 w-3.5" /> Fill required
+                        fields to save.
+                      </p>
+                    )}
+                    {saveError && (
+                      <p className="flex items-center gap-1.5 text-xs text-red-400">
+                        <AlertCircle className="h-3.5 w-3.5" /> {saveError}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 ml-auto">
                     <button
                       onClick={closeForm}
@@ -617,17 +695,15 @@ export default function ProjectsPage() {
                       } disabled:opacity-50 disabled:cursor-not-allowed`}>
                       {saving ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
+                          <Loader2 className="h-4 w-4 animate-spin" /> Saving...
                         </>
                       ) : saved ? (
                         <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Saved!
+                          <CheckCircle2 className="h-4 w-4" /> Saved!
                         </>
                       ) : (
                         <>
-                          <Save className="h-4 w-4" />
+                          <Save className="h-4 w-4" />{" "}
                           {editingId === "new" ? "Add Project" : "Save Changes"}
                         </>
                       )}
@@ -642,7 +718,7 @@ export default function ProjectsPage() {
         {/* ── Project Cards ─────────────────────────────────────────── */}
         <div className="space-y-4">
           <AnimatePresence>
-            {projects.length === 0 && (
+            {projects.length === 0 && !loading && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -650,7 +726,7 @@ export default function ProjectsPage() {
                 <Folder className="h-12 w-12 text-zinc-700 mb-4" />
                 <p className="text-zinc-500 font-medium">No projects yet.</p>
                 <p className="text-xs text-zinc-600 mt-1">
-                  Click "Add Project" to get started.
+                  Click Add Project to get started.
                 </p>
               </motion.div>
             )}
@@ -669,12 +745,9 @@ export default function ProjectsPage() {
                     : "border-zinc-800 hover:border-zinc-700"
                 }`}>
                 <div className="flex gap-4 p-5">
-                  {/* Drag handle */}
                   <div className="mt-1 shrink-0 text-zinc-700 cursor-grab hover:text-zinc-500 transition-colors hidden sm:flex items-start pt-1">
                     <GripVertical className="h-5 w-5" />
                   </div>
-
-                  {/* Thumbnail */}
                   <div className="shrink-0 h-20 w-28 rounded-xl overflow-hidden bg-zinc-800/60 ring-1 ring-zinc-700/50">
                     {project.image ? (
                       <Image
@@ -683,6 +756,7 @@ export default function ProjectsPage() {
                         width={112}
                         height={80}
                         className="w-full h-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -690,8 +764,6 @@ export default function ProjectsPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Content */}
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
                       <div>
@@ -709,15 +781,12 @@ export default function ProjectsPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="shrink-0 flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-400 transition-colors bg-zinc-800/50 px-2.5 py-1 rounded-full border border-zinc-700/50 hover:border-blue-500/30">
-                        <ExternalLink className="h-3 w-3" />
-                        Preview
+                        <ExternalLink className="h-3 w-3" /> Preview
                       </a>
                     </div>
-
                     <p className="text-sm text-zinc-400 line-clamp-2 leading-relaxed">
                       {project.description}
                     </p>
-
                     {project.tech.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         {project.tech
@@ -739,8 +808,7 @@ export default function ProjectsPage() {
                             className="rounded-full border border-zinc-700/50 bg-zinc-800/50 px-2.5 py-0.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1">
                             {previewId === project.id ? (
                               <>
-                                <EyeOff className="h-3 w-3" />
-                                Less
+                                <EyeOff className="h-3 w-3" /> Less
                               </>
                             ) : (
                               <>
@@ -753,8 +821,6 @@ export default function ProjectsPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Actions */}
                   <div className="flex flex-col items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => openEdit(project)}
@@ -784,8 +850,7 @@ export default function ProjectsPage() {
         {projects.length > 0 && (
           <div className="flex items-center gap-2 text-xs text-zinc-600 pb-6">
             <GripVertical className="h-3.5 w-3.5" />
-            Projects displayed top-to-bottom on your portfolio. Drag to reorder
-            (connect to API).
+            Projects displayed top-to-bottom on your portfolio.
           </div>
         )}
       </div>

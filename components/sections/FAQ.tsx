@@ -1,53 +1,46 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiChevronDown } from "react-icons/fi";
 
-const faqs = [
-  {
-    question: "What services do you offer?",
-    answer:
-      "I offer: Frontend Development (React, Next.js, Vue, payments); Full Stack Development (MERN, MEVN, auth, real-time); Database & Backend; Performance & Frontend Optimization; Frontend Architecture & System Design; Product-Focused UI Engineering; and SEO, AEO, GEO & Production Readiness- metadata, structured data, analytics, and monitoring so your site is discoverable, citable by AI, and issues get caught early.",
-  },
-  {
-    question: "How much experience do you have?",
-    answer:
-      "I have 4+ years of real-world experience in web development, working with various technologies including React.js, Next.js, Node.js, MongoDB, Express.js, and Vue.js.",
-  },
-  {
-    question: "What is your hourly rate?",
-    answer:
-      "My freelance rate is $25-57/hour, though this may vary depending on the project scope and requirements. I'm flexible with working hours, hourly rate, fixed rate, payment terms and available for both short-term and long-term projects.",
-  },
-  {
-    question: "Do you work remotely?",
-    answer:
-      "Yes. I work remotely with teams worldwide, including the US, UK, and Europe. I'm used to overlapping with US hours and async communication. Based in the UK; available for remote projects and flexible on time zones.",
-  },
-  {
-    question: "Do you work with US-based clients?",
-    answer:
-      "Yes. I actively work with US clients - startups, product teams, and agencies. I work remotely with flexible hours to overlap with US time zones, communicate clearly in English, and charge in USD. If you're in the US and need a reliable frontend or full-stack developer, get in touch via the contact form or email.",
-  },
-  {
-    question: "What technologies do you specialize in?",
-    answer:
-      "I specialize in React.js, Next.js, Node.js, TypeScript, JavaScript, MERN/MEVN stack, Tailwind CSS, ShadCN UI, MongoDB, Supabase, Express.js, Vue.js, and various other modern web technologies.",
-  },
-  {
-    question: "Can you help with existing projects?",
-    answer:
-      "Absolutely! I can help with maintaining, updating, and enhancing existing web applications. I have experience working with legacy codebases and can help modernize older applications.",
-  },
-];
+interface FAQ {
+  _id: string;
+  question: string;
+  answer: string;
+}
+
+function FAQSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="border border-white/10 rounded-2xl bg-white/5 p-6 animate-pulse">
+          <div className="h-5 bg-white/10 rounded w-3/4" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function FAQ() {
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const toggleFAQ = (index: number) => {
+  useEffect(() => {
+    fetch("/api/admin/faqs")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.data) setFaqs(json.data);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleFAQ = (index: number) =>
     setOpenIndex(openIndex === index ? null : index);
-  };
 
   return (
     <section
@@ -68,53 +61,61 @@ export function FAQ() {
       </motion.div>
 
       <div className="mx-auto max-w-3xl space-y-4">
-        {faqs.map((faq, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1 }}
-            className="border border-white/10 rounded-2xl bg-white/5 backdrop-blur-sm overflow-hidden hover:border-emerald-400/50 transition-all duration-300">
-            <button
-              onClick={() => toggleFAQ(index)}
-              aria-expanded={openIndex === index}
-              aria-controls={`faq-answer-${index}`}
-              className="flex w-full items-center justify-between p-6 text-left transition-colors hover:bg-white/5">
-              <h3
-                className="pr-4 text-lg font-semibold text-white"
-                id={`faq-question-${index}`}>
-                {faq.question}
-              </h3>
-              <FiChevronDown
-                className={`size-5 text-emerald-400 transition-transform duration-300 flex-shrink-0 ${
-                  openIndex === index ? "rotate-180" : ""
-                }`}
-                aria-hidden="true"
-              />
-            </button>
+        {loading ? (
+          <FAQSkeleton />
+        ) : faqs.length === 0 ? (
+          <p className="text-center text-white/50 py-16">
+            No FAQs available yet.
+          </p>
+        ) : (
+          faqs.map((faq, index) => (
+            <motion.div
+              key={faq._id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.07 }}
+              className="border border-white/10 rounded-2xl bg-white/5 backdrop-blur-sm overflow-hidden hover:border-emerald-400/50 transition-all duration-300">
+              <button
+                onClick={() => toggleFAQ(index)}
+                aria-expanded={openIndex === index}
+                aria-controls={`faq-answer-${index}`}
+                className="flex w-full items-center justify-between p-6 text-left transition-colors hover:bg-white/5">
+                <h3
+                  className="pr-4 text-lg font-semibold text-white"
+                  id={`faq-question-${index}`}>
+                  {faq.question}
+                </h3>
+                <FiChevronDown
+                  className={`size-5 text-emerald-400 transition-transform duration-300 flex-shrink-0 ${
+                    openIndex === index ? "rotate-180" : ""
+                  }`}
+                  aria-hidden="true"
+                />
+              </button>
 
-            <AnimatePresence initial={false}>
-              {openIndex === index && (
-                <motion.div
-                  id={`faq-answer-${index}`}
-                  role="region"
-                  aria-labelledby={`faq-question-${index}`}
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="overflow-hidden">
-                  <div className="px-6 pb-6 pt-2">
-                    <p className="text-white/80 leading-relaxed">
-                      {faq.answer}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ))}
+              <AnimatePresence initial={false}>
+                {openIndex === index && (
+                  <motion.div
+                    id={`faq-answer-${index}`}
+                    role="region"
+                    aria-labelledby={`faq-question-${index}`}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden">
+                    <div className="px-6 pb-6 pt-2">
+                      <p className="text-white/80 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))
+        )}
       </div>
     </section>
   );
