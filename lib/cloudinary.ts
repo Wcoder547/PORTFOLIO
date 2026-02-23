@@ -38,3 +38,6 @@ export async function uploadToCloudinary(file: File, folder: string) {
     },
   );
 }
+
+export const deleteFromCloudinary = (public_id: string) =>
+  cloudinary.uploader.destroy(public_id);

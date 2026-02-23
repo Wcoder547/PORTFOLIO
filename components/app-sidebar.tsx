@@ -1,6 +1,7 @@
-"use client"; // ← must be absolute line 1
+"use client";
 
 import Link from "next/link";
+
 import { usePathname } from "next/navigation";
 import {
   Users,
@@ -13,6 +14,7 @@ import {
   LogOut,
   MapPin,
   Code2,
+  Home,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -34,6 +36,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
+  { title: "Dashboard", url: "/admin/dashboard", icon: Home },
   { title: "User", url: "/admin/dashboard/user", icon: Users },
   { title: "Experience", url: "/admin/dashboard/experience", icon: Briefcase },
   { title: "Projects", url: "/admin/dashboard/projects", icon: Folder },
