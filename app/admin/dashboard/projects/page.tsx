@@ -85,7 +85,7 @@ const validate = (form: Omit<Project, "id">): FormErrors => {
   if (!form.description.trim()) e.description = "Description is required.";
   else if (form.description.trim().length < 20)
     e.description = "At least 20 characters.";
-  else if (form.description.length > 500) e.description = "Max 500 characters.";
+  else if (form.description.length > 600) e.description = "Max 600 characters.";
   if (!form.link) e.link = "Live link is required.";
   else if (!isValidUrl(form.link)) e.link = "Enter a valid URL (https://...).";
   if (form.tech.length === 0) e.tech = "Add at least one tech tag.";

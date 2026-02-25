@@ -31,7 +31,7 @@ const ProjectSchema = new Schema<IProject>(
       type: String,
       required: [true, "Description is required"],
       trim: true,
-      maxlength: [300, "Description max 300 chars"],
+      maxlength: [600, "Description max 600 chars"],
     },
     longDescription: {
       type: String,

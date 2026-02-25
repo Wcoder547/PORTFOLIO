@@ -3,13 +3,11 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import { apiError } from "@/utils/apiError";
 import { apiResponse } from "@/utils/apiResponse";
-import FAQModel from "@/Models/FAQ.model";
+import FAQModel from "@/Models/FAQ.model"; // ✅ FAQModel — use this everywhere
 
 export const runtime = "nodejs";
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/admin/faqs/[id]
-// ─────────────────────────────────────────────────────────────────────────────
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -28,9 +26,7 @@ export async function GET(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PUT /api/admin/faqs/[id] — Full update
-// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/admin/faqs/[id]
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -39,13 +35,12 @@ export async function PUT(
     await dbConnect();
     const { id } = await params;
 
-    const existing = await FaqModel.findById(id);
+    const existing = await FAQModel.findById(id).lean(); // ✅ was FaqModel
     if (!existing) return apiError("FAQ not found", 404);
 
     const body = await req.json();
     const { question, answer, category, order, isVisible } = body;
 
-    // ── Validation ────────────────────────────────────────────────────────────
     if (!question?.trim()) return apiError("Question is required", 400);
     if (question.trim().length < 10)
       return apiError("Question must be at least 10 chars", 400);
@@ -69,8 +64,7 @@ export async function PUT(
       return apiError("Invalid category", 400);
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
-    const updated = await FaqModel.findByIdAndUpdate(
+    const updated = await FAQModel.findByIdAndUpdate(
       id,
       {
         question: question.trim(),
@@ -98,9 +92,7 @@ export async function PUT(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PATCH /api/admin/faqs/[id] — Toggle visibility only
-// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/admin/faqs/[id] — Toggle visibility
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -109,10 +101,10 @@ export async function PATCH(
     await dbConnect();
     const { id } = await params;
 
-    const existing = await FaqModel.findById(id);
+    const existing = await FAQModel.findById(id);
     if (!existing) return apiError("FAQ not found", 404);
 
-    const updated = await FaqModel.findByIdAndUpdate(
+    const updated = await FAQModel.findByIdAndUpdate(
       id,
       { isVisible: !existing.isVisible },
       { returnDocument: "after" },
@@ -129,9 +121,6 @@ export async function PATCH(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DELETE /api/admin/faqs/[id]
-// ─────────────────────────────────────────────────────────────────────────────
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -140,10 +129,10 @@ export async function DELETE(
     await dbConnect();
     const { id } = await params;
 
-    const faq = await FaqModel.findById(id);
+    const faq = await FAQModel.findById(id); // ✅ was FaqModel
     if (!faq) return apiError("FAQ not found", 404);
 
-    await FaqModel.findByIdAndDelete(id);
+    await FAQModel.findByIdAndDelete(id); // ✅ was FaqModel
 
     return apiResponse(null, 200, "FAQ deleted successfully");
   } catch (error: any) {

@@ -15,6 +15,7 @@ import {
   MapPin,
   Code2,
   Home,
+  Pencil,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,6 +44,7 @@ const menuItems = [
   { title: "Articles", url: "/admin/dashboard/articles", icon: FileText },
   { title: "Testimonials", url: "/admin/dashboard/testimonials", icon: Star },
   { title: "FAQ", url: "/admin/dashboard/faq", icon: HelpCircle },
+  { title: "Portfolio", url: "/", icon: Pencil },
 ];
 
 export function AppSidebar() {

@@ -42,7 +42,7 @@ export function TechStack() {
 
       <div className="relative">
         <div className="overflow-hidden rounded-3xl bg-white/5 border border-white/20 backdrop-blur-md shadow-2xl shadow-zinc-950/30 group">
-          <div className="flex gap-10 [animation:skills-scroll_15s_linear_infinite] hover:[animation-play-state:paused] py-12 lg:py-16 px-12 lg:px-20 relative">
+          <div className="flex gap-10 [animation:skills-scroll_8s_linear_infinite] hover:[animation-play-state:paused] py-12 lg:py-16 px-12 lg:px-20 relative">
             {[...logos, ...logos, ...logos].map((logoObj, index) => (
               <div
                 key={index}

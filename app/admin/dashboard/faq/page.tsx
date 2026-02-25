@@ -193,7 +193,7 @@ export default function FAQPage() {
   const handleDelete = async (id: string) => {
     setDeleteId(id);
     try {
-      const res = await fetch(`/api/admin/faq/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/faqs/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to delete");
       setFaqs((prev) => prev.filter((f) => f.id !== id));

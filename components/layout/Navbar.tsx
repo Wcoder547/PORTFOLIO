@@ -1,12 +1,21 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { FiChevronDown } from "react-icons/fi";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  FiCode,
+  FiX,
+  FiSend,
+  FiGithub,
+  FiLinkedin,
+  FiZap,
+  FiClock,
+  FiStar,
+} from "react-icons/fi";
 
 const links = [
-  { href: "#home", label: "Home" },
+  { href: "#hero", label: "Home" },
   { href: "#experience", label: "Experience" },
   { href: "#projects", label: "Projects" },
   { href: "#articles", label: "Articles" },
@@ -14,64 +23,117 @@ const links = [
   { href: "#contact", label: "Contact" },
 ];
 
-const languages = [
-  { flag: "🇬🇧", name: "English", native: "English", selected: true },
-  { flag: "🇪🇸", name: "Español", native: "Spanish", selected: false },
-  { flag: "🇫🇷", name: "Français", native: "French", selected: false },
-  { flag: "🇩🇪", name: "Deutsch", native: "German", selected: false },
-  { flag: "🇮🇹", name: "Italiano", native: "Italian", selected: false },
-  { flag: "🇵🇹", name: "Português", native: "Portuguese", selected: false },
-  { flag: "🇳🇱", name: "Nederlands", native: "Dutch", selected: false },
-  { flag: "🇮🇳", name: "हिन्दी", native: "Hindi", selected: false },
-  { flag: "🇨🇳", name: "中文", native: "Chinese", selected: false },
-  { flag: "🇯🇵", name: "日本語", native: "Japanese", selected: false },
+const STATS = [
+  { icon: FiCode, label: "Projects", value: "20+" },
+  { icon: FiStar, label: "Happy Clients", value: "15+" },
+  { icon: FiClock, label: "Response", value: "< 2h" },
+  { icon: FiZap, label: "Years Exp", value: "3+" },
+];
+
+const SERVICES = [
+  "Custom Web App",
+  "AI Integration",
+  "Product Design",
+  "Secure User System",
+  "Launch & Monitoring",
 ];
 
 export function Navbar() {
-  const [langOpen, setLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState(languages[0]);
+  const [open, setOpen] = useState(false);
+  const [activeService, setActive] = useState<string | null>(null);
+  const [time, setTime] = useState("");
+  const [msgSent, setMsgSent] = useState(false);
+
+  // Live Pakistan time
+  useEffect(() => {
+    const tick = () => {
+      const t = new Date().toLocaleTimeString("en-US", {
+        timeZone: "Asia/Karachi",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      setTime(t);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const handleQuickContact = () => {
+    setMsgSent(true);
+    setTimeout(() => {
+      setMsgSent(false);
+      setOpen(false);
+      document
+        .getElementById("contact")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 1800);
+  };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-900/60  backdrop-blur-xl px-8 py-4">
+    <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-900/60 backdrop-blur-xl px-8 py-4">
       <nav className="mx-auto flex max-w-7xl items-center justify-between">
-        <div className="flex items-center gap-3 group/logo">
+        {/* ── Logo ── */}
+
+        <motion.div
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="relative cursor-pointer select-none"
+          whileHover="hover"
+          whileTap={{ scale: 0.95 }}
+          initial="idle">
           <motion.div
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="relative h-10 w-10 overflow-hidden rounded-xl cursor-pointer group/logo-hover shadow-lg hover:shadow-2xl hover:shadow-white/30 border border-white/20 hover:border-white/40 transition-all duration-500"
-            whileHover={{
-              scale: 1.1,
-              rotate: [0, -5, 5, -3, 0],
-              borderRadius: ["50%", "40%", "50%"],
+            variants={{
+              idle: { boxShadow: "0 0 0px 0px rgba(52,211,153,0)" },
+              hover: { boxShadow: "0 0 16px 2px rgba(52,211,153,0.25)" },
             }}
-            whileTap={{ scale: 0.95 }}>
-            <Image
-              src="/profile.png"
-              alt="Profile"
-              fill
-              className="object-cover group/logo-hover:brightness-110 group/logo-hover:grayscale-0 transition-all duration-500"
-              priority
+            className="flex items-center gap-0.5 px-3 py-1.5 rounded-lg border border-white/10 bg-zinc-900 hover:border-emerald-500/40 hover:bg-zinc-800/80 transition-all duration-300">
+            {/* < bracket */}
+            <motion.span
+              variants={{
+                idle: { x: 0, opacity: 0.4 },
+                hover: { x: -2, opacity: 1 },
+              }}
+              transition={{ duration: 0.2 }}
+              className="text-emerald-400 font-mono font-bold text-sm">
+              &lt;
+            </motion.span>
+
+            {/* Initials */}
+            <motion.span
+              variants={{
+                idle: { letterSpacing: "0em" },
+                hover: { letterSpacing: "0.05em" },
+              }}
+              transition={{ duration: 0.2 }}
+              className="font-black text-sm text-white font-mono tracking-tight">
+              WA
+            </motion.span>
+
+            {/* / bracket */}
+            <motion.span
+              variants={{
+                idle: { x: 0, opacity: 0.4 },
+                hover: { x: 2, opacity: 1 },
+              }}
+              transition={{ duration: 0.2 }}
+              className="text-emerald-400 font-mono font-bold text-sm">
+              /&gt;
+            </motion.span>
+
+            {/* Blinking cursor — only visible on hover */}
+            <motion.span
+              variants={{
+                idle: { opacity: 0, width: 0 },
+                hover: { opacity: 1, width: "auto" },
+              }}
+              transition={{ duration: 0.15 }}
+              className="ml-0.5 inline-block w-1.5 h-4 bg-emerald-400 rounded-sm animate-pulse overflow-hidden"
             />
-
-            <div className="absolute inset-0 opacity-0 group/logo-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-              <div className="absolute w-1 h-1 bg-white/50 rounded-full top-1 left-1 animate-ping" />
-              <div className="absolute w-1.5 h-1.5 bg-white/30 rounded-full top-2 right-2 animate-ping delay-100" />
-              <div className="absolute w-0.5 h-0.5 bg-white/40 rounded-full bottom-1 left-3 animate-bounce delay-200" />
-            </div>
           </motion.div>
+        </motion.div>
 
-          <motion.div
-            className="w-10 h-10 rounded-xl border-2 border-white/10 absolute -inset-1 opacity-0 group/logo-hover:opacity-100 group/logo-hover:animate-spin-slow bg-gradient-to-r from-white/20 to-transparent shadow-2xl shadow-white/10"
-            animate={{
-              scale: [1, 1.05, 1],
-              rotate: [0, 360],
-            }}
-            transition={{
-              scale: { duration: 2, repeat: Infinity },
-              rotate: { duration: 8, repeat: Infinity, ease: "linear" },
-            }}
-          />
-        </div>
-
+        {/* ── Nav Links ── */}
         <div className="hidden items-center gap-4 text-sm text-white/70 md:flex lg:gap-6">
           {links.map((link) => (
             <motion.a
@@ -86,86 +148,177 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 mr-4">
+        {/* ── CTA Trigger ── */}
+        <div className="relative">
           <motion.button
-            className="inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold border border-white/20 bg-white/5 backdrop-blur-sm hover:bg-white/10 hover:border-white/40 transition-all duration-300 px-4 py-2.5 h-11 w-auto gap-2 rounded-xl shadow-lg hover:shadow-white/20 md:mr-0"
-            aria-label="Change language"
-            onClick={() => setLangOpen(!langOpen)}
-            whileTap={{ scale: 0.98 }}
-            whileHover={{ scale: 1.05 }}>
-            <span className="shrink-0 text-xl" role="img" aria-hidden="true">
-              {selectedLang?.flag || "🌐"}
+            onClick={() => setOpen((p) => !p)}
+            className="group relative flex items-center gap-2.5 px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all duration-300 overflow-hidden"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}>
+            {/* Pulsing dot */}
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
             </span>
-            <span className="font-bold text-sm">
-              {selectedLang?.name || "English"}
+
+            <span className="text-sm font-semibold text-white">
+              Let&apos;s Build Together
             </span>
-            <FiChevronDown
-              className={`h-4 w-4 shrink-0 transition-transform duration-300 ${langOpen ? "rotate-180" : ""}`}
-            />
+
+            {/* Subtle sliding highlight */}
+            <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
           </motion.button>
 
+          {/* ── Popup Panel ── */}
           <AnimatePresence>
-            {langOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="bg-zinc-900/95 border border-white/10 absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-8rem)] w-56 overflow-hidden overflow-y-auto rounded-xl shadow-2xl shadow-zinc-950/50 backdrop-blur-xl">
-                <ul className="py-1.5">
-                  {languages.map((lang, index) => (
-                    <motion.li
-                      key={lang.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}>
-                      <motion.button
-                        className={`hover:bg-white/5 flex w-full items-center gap-2.5 px-4 py-3 text-left transition-all duration-300 rounded-lg text-sm font-medium ${
-                          selectedLang?.name === lang.name
-                            ? "bg-white/10 border border-white/30 shadow-white/20 shadow-md"
-                            : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedLang(lang);
-                          setLangOpen(false);
-                        }}
-                        whileTap={{ scale: 0.98 }}
-                        whileHover={{ scale: 1.02 }}>
-                        <span
-                          className="shrink-0 text-xl"
-                          role="img"
-                          aria-hidden="true">
-                          {lang.flag}
-                        </span>
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <span className="text-white font-semibold">
-                            {lang.name}
-                          </span>
-                          <span className="text-white/60 text-xs">
-                            {lang.native}
+            {open && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setOpen(false)}
+                />
+
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="absolute right-0 top-full mt-3 z-50 w-80 rounded-2xl border border-white/10 bg-zinc-900/98 backdrop-blur-xl shadow-2xl shadow-zinc-950/60 overflow-hidden">
+                  {/* Header */}
+                  <div className="relative p-4 pb-3 border-b border-white/5">
+                    <div className="flex items-start gap-3">
+                      <div className="relative shrink-0">
+                        <div className="w-11 h-11 rounded-xl overflow-hidden border border-white/20">
+                          <Image
+                            src="/profile.png"
+                            alt="Waseem"
+                            width={44}
+                            height={44}
+                            className="object-cover"
+                          />
+                        </div>
+                        {/* Online badge */}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-zinc-900" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-bold text-sm">
+                          Waseem Akram
+                        </p>
+                        <p className="text-zinc-400 text-xs">
+                          Full-Stack Developer · Pakistan
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <FiClock className="h-3 w-3 text-zinc-500" />
+                          <span className="text-zinc-500 text-[11px]">
+                            🇵🇰 {time} PKT
                           </span>
                         </div>
-                        {selectedLang?.name === lang.name && (
-                          <motion.svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-auto h-4 w-4 shrink-0 text-white"
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ duration: 0.5, repeat: Infinity }}>
-                            <path d="M20 6 9 17l-5-5" />
-                          </motion.svg>
+                      </div>
+                      <button
+                        onClick={() => setOpen(false)}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-200 transition-all">
+                        <FiX className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-4 gap-px bg-white/5 border-b border-white/5">
+                    {STATS.map(({ icon: Icon, label, value }) => (
+                      <div
+                        key={label}
+                        className="flex flex-col items-center py-3 bg-zinc-900/80">
+                        <Icon className="h-3.5 w-3.5 text-emerald-400 mb-1" />
+                        <span className="text-white font-bold text-sm leading-none">
+                          {value}
+                        </span>
+                        <span className="text-zinc-500 text-[10px] mt-0.5 text-center leading-tight">
+                          {label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Services */}
+                  <div className="p-4 border-b border-white/5">
+                    <p className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider mb-2.5">
+                      What do you need?
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SERVICES.map((s) => (
+                        <motion.button
+                          key={s}
+                          onClick={() =>
+                            setActive(activeService === s ? null : s)
+                          }
+                          whileTap={{ scale: 0.95 }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                            activeService === s
+                              ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
+                              : "bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                          }`}>
+                          {s}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CTA buttons */}
+                  <div className="p-4 space-y-2">
+                    <motion.button
+                      onClick={handleQuickContact}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold text-sm relative overflow-hidden group"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}>
+                      <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                      <AnimatePresence mode="wait">
+                        {msgSent ? (
+                          <motion.span
+                            key="sent"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex items-center gap-2">
+                            Opening contact...
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="send"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-center gap-2">
+                            <FiSend className="h-4 w-4" />
+                            Start a Project
+                          </motion.span>
                         )}
-                      </motion.button>
-                    </motion.li>
-                  ))}
-                </ul>
-              </motion.div>
+                      </AnimatePresence>
+                    </motion.button>
+
+                    {/* Social row */}
+                    <div className="flex gap-2">
+                      <a
+                        href="https://github.com/Wcoder547"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-all">
+                        <FiGithub className="h-3.5 w-3.5" /> GitHub
+                      </a>
+                      <a
+                        href="https://www.linkedin.com/in/wasim-akram-dev/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-blue-500/20 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 text-xs font-medium transition-all">
+                        <FiLinkedin className="h-3.5 w-3.5" /> LinkedIn
+                      </a>
+                      <a
+                        href="mailto:malikwaseemshzad@gmail.com"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-zinc-400 hover:text-emerald-400 text-xs font-medium transition-all">
+                        ✉️ Email
+                      </a>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>

@@ -49,18 +49,21 @@ export function Hero() {
       : "#contact";
 
   return (
-    <section className="flex flex-col lg:flex-row items-center lg:items-start gap-8 mb-16 pt-10 max-w-6xl mx-auto px-4 mt-10 ">
+    <section
+      className="flex flex-col lg:flex-row items-center lg:items-start gap-8 mb-16 pt-10 max-w-6xl mx-auto px-4 mt-10 "
+      id="hero">
       <div className="flex flex-col items-center lg:items-start ml-9">
         <div className="relative w-48 h-48 mb-8 rounded-full ring-2 ring-gray-800 overflow-hidden bg-gray-900/50 shadow-2xl">
           <Image
             src={user?.image?.url ?? "/profile.png"}
             alt={user?.name ?? "Waseem Akram"}
-            fill
-            unoptimized
+            width={384} // 2x container size for retina
+            height={384}
             className="object-cover rounded-full"
             priority
           />
         </div>
+
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-8">
           <FaMapPin className="w-4 h-4" />
           <span>Sargodha, Punjab, Pakistan</span>

@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true, // Bypasses optimizer for all images (local + remote); ideal for dev
     remotePatterns: [
       {
         protocol: "https",

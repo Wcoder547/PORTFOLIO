@@ -17,10 +17,10 @@ export async function uploadToCloudinary(file: File, folder: string) {
         .upload_stream(
           {
             folder,
-            transformation: [
-              { width: 400, height: 400, crop: "thumb", gravity: "face" },
-              { quality: "auto", fetch_format: "auto" },
-            ],
+            // transformation: [
+            //   { width: 400, height: 400, crop: "thumb", gravity: "face" },
+            //   { quality: "auto", fetch_format: "auto" },
+            // ],
           },
           (error, result) => {
             if (error || !result) {
