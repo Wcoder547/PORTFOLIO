@@ -350,17 +350,7 @@ export function Chatbot({ userId }: { userId?: string }) {
                     Waseem&apos;s AI Assistant
                   </h3>
                   <p className="text-xs text-white/60 flex items-center gap-1.5">
-                    {isStreaming || isPending ? (
-                      <>
-                        <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Typing...
-                      </>
-                    ) : (
-                      <>
-                        <span className="size-1.5 rounded-full bg-green-400" />
-                        Online
-                      </>
-                    )}
+                    {isStreaming || isPending ? <>Typing...</> : <></>}
                   </p>
                 </div>
               </div>
