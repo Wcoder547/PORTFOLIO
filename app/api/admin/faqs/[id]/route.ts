@@ -3,7 +3,8 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import { apiError } from "@/utils/apiError";
 import { apiResponse } from "@/utils/apiResponse";
-import FAQModel from "@/Models/FAQ.model"; // ✅ FAQModel — use this everywhere
+import FAQModel from "@/Models/FAQ.model";
+import type { IFAQ } from "@/Models/FAQ.model"; // ← import your interface
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function GET(
     await dbConnect();
     const { id } = await params;
 
-    const faq = await FAQModel.findById(id).lean();
+    const faq = await FAQModel.findById(id).lean<IFAQ>();
     if (!faq) return apiError("FAQ not found", 404);
 
     return apiResponse(faq, 200, "FAQ fetched successfully");
@@ -35,7 +36,8 @@ export async function PUT(
     await dbConnect();
     const { id } = await params;
 
-    const existing = await FAQModel.findById(id).lean(); // ✅ was FaqModel
+    // ── FIXED: typed lean<IFAQ>() so existing.category is recognized ──────────
+    const existing = await FAQModel.findById(id).lean<IFAQ>();
     if (!existing) return apiError("FAQ not found", 404);
 
     const body = await req.json();
@@ -69,12 +71,12 @@ export async function PUT(
       {
         question: question.trim(),
         answer: answer.trim(),
-        category: category || existing.category,
+        category: category || existing.category, // ✅ now recognized
         order: order ?? existing.order,
         isVisible: isVisible ?? existing.isVisible,
       },
       { returnDocument: "after", runValidators: true },
-    ).lean();
+    ).lean<IFAQ>();
 
     return apiResponse(updated, 200, "FAQ updated successfully");
   } catch (error: any) {
@@ -108,7 +110,7 @@ export async function PATCH(
       id,
       { isVisible: !existing.isVisible },
       { returnDocument: "after" },
-    ).lean();
+    ).lean<IFAQ>();
 
     return apiResponse(
       updated,
@@ -121,6 +123,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/admin/faqs/[id]
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -129,10 +132,10 @@ export async function DELETE(
     await dbConnect();
     const { id } = await params;
 
-    const faq = await FAQModel.findById(id); // ✅ was FaqModel
+    const faq = await FAQModel.findById(id);
     if (!faq) return apiError("FAQ not found", 404);
 
-    await FAQModel.findByIdAndDelete(id); // ✅ was FaqModel
+    await FAQModel.findByIdAndDelete(id);
 
     return apiResponse(null, 200, "FAQ deleted successfully");
   } catch (error: any) {
