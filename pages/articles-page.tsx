@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -12,7 +10,11 @@ import {
   FiSearch,
   FiArrowRight,
 } from "react-icons/fi";
-import { getAllArticles } from "@/lib/articles-data";
+import type { GetServerSideProps } from "next";
+import type { Article } from "@/lib/articles-data";
+
+// ── "use client" REMOVED — this is now a pages-dir server/client hybrid ──────
+// getAllArticles() is called in getServerSideProps ONLY (server-side)
 
 const categories = [
   "All",
@@ -27,12 +29,15 @@ const categories = [
   "Authentication",
 ];
 
-export default function ArticlesPage() {
-  const allArticles = getAllArticles();
+interface ArticlesPageProps {
+  initialArticles: Article[];
+}
+
+export default function ArticlesPage({ initialArticles }: ArticlesPageProps) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredArticles = allArticles.filter((article) => {
+  const filteredArticles = initialArticles.filter((article) => {
     const matchesCategory =
       selectedCategory === "All" || article.category === selectedCategory;
     const matchesSearch =
@@ -76,7 +81,7 @@ export default function ArticlesPage() {
           transition={{ delay: 0.2 }}
           className="mb-12 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-white to-emerald-300 bg-clip-text text-transparent drop-shadow-2xl mb-6">
-            Articles & Insights
+            Articles &amp; Insights
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto">
             In-depth tutorials, best practices, and insights on modern web
@@ -145,7 +150,11 @@ export default function ArticlesPage() {
               <Link href={`/articles/${article.slug}`}>
                 <div className="relative h-48 overflow-hidden">
                   <Image
-                    src={article.image}
+                    src={
+                      typeof article.image === "string"
+                        ? article.image
+                        : article.image.url
+                    }
                     alt={article.title}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -216,3 +225,14 @@ export default function ArticlesPage() {
     </main>
   );
 }
+
+// ── SERVER-SIDE ONLY — Mongoose never touches the browser bundle ──────────────
+export const getServerSideProps: GetServerSideProps = async () => {
+  const { getAllArticles } = await import("@/lib/articles-data");
+  const articles = await getAllArticles();
+  return {
+    props: {
+      initialArticles: articles,
+    },
+  };
+};
