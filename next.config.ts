@@ -33,16 +33,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    esmExternals: "loose", // Handles ESM issues with MongoDB/Mongoose
-  },
-  serverExternalPackages: ["mongoose"], // Excludes Mongoose from client bundles (stable in Next.js 15+)
-  webpack: (config) => {
-    config.experiments = {
-      topLevelAwait: true, // Supports async in server components
-    };
-    return config;
-  },
+  serverExternalPackages: ["mongoose"], // Excludes Mongoose from client bundles
+  turbopack: {}, // Enables Turbopack cleanly (silences webpack conflict)
 };
 
 export default nextConfig;
