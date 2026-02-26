@@ -88,7 +88,10 @@ interface ProfileData {
 type SavedProfile = ProfileData & {
   image: { public_id: string; url: string } | null;
 };
+
+// ── FIXED: added index signature so getErr(f: string) works without cast ──────
 interface FormErrors {
+  [key: string]: string | undefined | Partial<SocialLinks>; // index signature
   headline?: string;
   description?: string;
   whatsapp?: string;
@@ -234,7 +237,7 @@ export default function UserPage() {
   const [saved, setSaved] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Load existing profile on page mount
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -247,7 +250,6 @@ export default function UserPage() {
         console.error("Failed to load profile:", err);
       }
     };
-
     fetchProfile();
   }, []);
 
@@ -339,7 +341,6 @@ export default function UserPage() {
 
   const openEdit = async () => {
     if (savedProfile) {
-      // Load existing
       setForm({
         headline: savedProfile.headline,
         description: savedProfile.description,
@@ -349,11 +350,9 @@ export default function UserPage() {
       });
       setImagePreview(savedProfile.image?.url || null);
     } else {
-      // Reset to empty
       setForm(emptyForm);
       setImagePreview(null);
     }
-
     setErrors({ socials: {} });
     setTouched(new Set());
     setIsEditing(true);
@@ -369,7 +368,6 @@ export default function UserPage() {
   };
 
   const handleSave = async () => {
-    // ── Final validation ───────────────────────────────────────────────────────
     const allFields = new Set([
       "headline",
       "description",
@@ -382,23 +380,17 @@ export default function UserPage() {
     setTouched(allFields);
     const e = validate(form, imagePreview);
     setErrors(e);
-
     if (hasErrors(e)) return;
 
     setSaving(true);
 
-    // ── Create FormData ────────────────────────────────────────────────────────
     const formData = new FormData();
-
     formData.append("headline", form.headline);
     formData.append("description", form.description);
     formData.append("whatsapp", form.whatsapp || "");
     formData.append("cvUrl", form.cvUrl || "");
-
-    // Socials as JSON string
     formData.append("socials", JSON.stringify(form.socials));
 
-    // Convert imagePreview (base64) → File
     if (imagePreview) {
       const response = await fetch(imagePreview);
       const blob = await response.blob();
@@ -411,16 +403,13 @@ export default function UserPage() {
     try {
       const response = await fetch("/api/admin/user", {
         method: "POST",
-        body: formData, // ← No Content-Type header — browser sets multipart/form-data automatically
+        body: formData,
       });
-
       const data = await response.json();
-
       if (data.success) {
         setSavedProfile(data.data);
         setSaved(true);
         toast.success(data.message);
-
         setTimeout(() => {
           setSaved(false);
           closeForm();
@@ -438,14 +427,9 @@ export default function UserPage() {
 
   const handleClearConfirm = async () => {
     setClearing(true);
-
     try {
-      const response = await fetch("/api/admin/user", {
-        method: "DELETE",
-      });
-
+      const response = await fetch("/api/admin/user", { method: "DELETE" });
       const data = await response.json();
-
       if (data.success) {
         setSavedProfile(null);
         toast.success("Profile cleared");
@@ -461,10 +445,14 @@ export default function UserPage() {
   };
 
   const liveErrors = validate(form, imagePreview);
-  const getErr = (f: string) =>
-    touched.has(f)
-      ? (liveErrors as Record<string, string | undefined>)[f]
-      : undefined;
+
+  // ── FIXED: type-safe lookup without invalid cast ───────────────────────────
+  const getErr = (f: string): string | undefined => {
+    if (!touched.has(f)) return undefined;
+    const val = liveErrors[f];
+    return typeof val === "string" ? val : undefined;
+  };
+
   const getSocialErr = (key: string) =>
     touched.has(`social_${key}`)
       ? liveErrors.socials[key as keyof SocialLinks]
@@ -730,12 +718,10 @@ export default function UserPage() {
                         const val = form.socials[key as keyof SocialLinks];
                         return (
                           <div key={key} className="space-y-1.5">
-                            {/* Label — text only, no duplicate icon */}
                             <label className="text-xs font-semibold text-zinc-400 block">
                               {label}
                             </label>
                             <div className="relative">
-                              {/* Icon inside input — appears once */}
                               <div
                                 className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md ${bg} flex items-center justify-center pointer-events-none`}>
                                 <Icon className={`h-3 w-3 ${color}`} />
@@ -827,7 +813,7 @@ export default function UserPage() {
                     )}
                   </div>
 
-                  {/* CV — link only, no file upload */}
+                  {/* CV */}
                   <div className="rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-5 space-y-4">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-amber-400" />
