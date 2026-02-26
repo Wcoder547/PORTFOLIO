@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,14 +12,33 @@ import {
   FiLink,
   FiCheck,
 } from "react-icons/fi";
-import { Article } from "@/lib/articles-data";
+import type { GetServerSideProps } from "next";
+import type { Article } from "@/lib/articles-data";
+
+// ── "use client" REMOVED — same fix as articles-page.tsx ─────────────────────
+// useState still works fine in pages/ dir without "use client"
 
 interface ArticleDetailPageProps {
-  article: Article;
+  article: Article | null;
 }
 
 export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // ── Guard: build-time or not-found ───────────────────────────────────────────
+  if (!article) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-white/60 text-lg">Article not found.</p>
+        <Link
+          href="/articles"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all">
+          <FiArrowLeft className="size-4" />
+          Back to Articles
+        </Link>
+      </main>
+    );
+  }
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -84,23 +101,21 @@ export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-8">
-            {
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="relative h-[400px] rounded-2xl overflow-hidden mb-8">
-                <Image
-                  src={article.image.url}
-                  alt={article.title}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute top-6 left-6 px-4 py-2 rounded-full bg-emerald-500/90 backdrop-blur-sm text-white text-sm font-semibold">
-                  {article.category}
-                </div>
-              </motion.div>
-            }
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative h-[400px] rounded-2xl overflow-hidden mb-8">
+              <Image
+                src={article.image.url}
+                alt={article.title}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute top-6 left-6 px-4 py-2 rounded-full bg-emerald-500/90 backdrop-blur-sm text-white text-sm font-semibold">
+                {article.category}
+              </div>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -238,6 +253,30 @@ export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   );
 }
 
+// ── SERVER-SIDE ONLY — runs at request time, never at build time ──────────────
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const slug = context.query.slug as string | undefined;
+
+  // No slug means visited directly as /article-detail-page — return null safely
+  if (!slug) {
+    return { props: { article: null } };
+  }
+
+  const { getArticleBySlug } = await import("@/lib/articles-data");
+  const article = await getArticleBySlug(slug);
+
+  if (!article) {
+    return { props: { article: null } };
+  }
+
+  return {
+    props: {
+      article: JSON.parse(JSON.stringify(article)),
+    },
+  };
+};
+
+// ── Markdown → HTML converter ─────────────────────────────────────────────────
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown;
   html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
@@ -250,7 +289,7 @@ function convertMarkdownToHtml(markdown: string): string {
   );
   html = html.replace(/`([^`]+)`/gim, "<code>$1</code>");
   html = html.replace(/^- (.*$)/gim, "<li>$1</li>");
-  html = html.replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>");
+  html = html.replace(/(<li>[\s\S]*<\/li>)/, "<ul>$1</ul>"); // ← /s replaced
   html = html.replace(/\n\n/g, "</p><p>");
   html = "<p>" + html + "</p>";
   return html;
