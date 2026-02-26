@@ -91,7 +91,7 @@ export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
                 transition={{ delay: 0.2 }}
                 className="relative h-[400px] rounded-2xl overflow-hidden mb-8">
                 <Image
-                  src={article.image}
+                  src={article.image.url}
                   alt={article.title}
                   fill
                   className="object-cover"
