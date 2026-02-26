@@ -1,13 +1,16 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export interface IFAQ extends Document {
+export interface IFAQData {
   question: string;
   answer: string;
   order: number;
+  category: string;
   isVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IFAQ extends IFAQData, Document {}
 
 const FAQSchema = new Schema<IFAQ>(
   {
@@ -24,6 +27,10 @@ const FAQSchema = new Schema<IFAQ>(
       trim: true,
       minlength: [20, "Answer must be at least 20 chars"],
       maxlength: [1000, "Answer max 1000 chars"],
+    },
+    category: {
+      type: String,
+      default: "general", // ← was MISSING from schema — this was the real bug
     },
     order: { type: Number, default: 0 },
     isVisible: { type: Boolean, default: true },
