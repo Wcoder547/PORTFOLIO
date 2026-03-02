@@ -65,7 +65,7 @@ export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   return (
     <main className="min-h-screen py-16 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
+
         <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -276,7 +276,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   };
 };
 
-// ── Markdown → HTML converter ─────────────────────────────────────────────────
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown;
   html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export function apiResponse(
-  data: any,
+  data: unknown,
   status: number = 200,
   message: string = "Success",
 ) {
