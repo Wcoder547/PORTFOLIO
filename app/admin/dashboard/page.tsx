@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { SignedIn, SignedOut, SignIn } from "@clerk/nextjs";
+import { SignedIn } from "@clerk/nextjs";
 import {
   Folder,
   Star,
@@ -744,11 +744,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </SignedIn>
-      <SignedOut>
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-          <SignIn afterSignInUrl="/admin/dashboard" />
-        </div>
-      </SignedOut>
     </div>
   );
 }
