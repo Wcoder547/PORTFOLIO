@@ -13,9 +13,6 @@ import {
 import type { GetServerSideProps } from "next";
 import type { Article } from "@/lib/articles-data";
 
-// ── "use client" REMOVED — this is now a pages-dir server/client hybrid ──────
-// getAllArticles() is called in getServerSideProps ONLY (server-side)
-
 const categories = [
   "All",
   "Next.js",
@@ -49,7 +46,6 @@ export default function ArticlesPage({ initialArticles }: ArticlesPageProps) {
   return (
     <main className="min-h-screen py-16 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
         <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,7 +133,6 @@ export default function ArticlesPage({ initialArticles }: ArticlesPageProps) {
           {filteredArticles.length !== 1 ? "s" : ""}
         </motion.div>
 
-        {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredArticles.map((article, index) => (
             <motion.article
@@ -226,7 +221,6 @@ export default function ArticlesPage({ initialArticles }: ArticlesPageProps) {
   );
 }
 
-// ── SERVER-SIDE ONLY — Mongoose never touches the browser bundle ──────────────
 export const getServerSideProps: GetServerSideProps = async () => {
   const { getAllArticles } = await import("@/lib/articles-data");
   const articles = await getAllArticles();

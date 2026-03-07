@@ -26,7 +26,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// ─── Social SVG Icons ────────────────────────────────────────────────────────
 const GithubIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.04.13 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z" />
@@ -68,7 +67,6 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 interface SocialLinks {
   github: string;
   linkedin: string;
@@ -89,9 +87,8 @@ type SavedProfile = ProfileData & {
   image: { public_id: string; url: string } | null;
 };
 
-// ── FIXED: added index signature so getErr(f: string) works without cast ──────
 interface FormErrors {
-  [key: string]: string | undefined | Partial<SocialLinks>; // index signature
+  [key: string]: string | undefined | Partial<SocialLinks>;
   headline?: string;
   description?: string;
   whatsapp?: string;
@@ -100,7 +97,6 @@ interface FormErrors {
   socials: Partial<SocialLinks>;
 }
 
-// ─── Validators ──────────────────────────────────────────────────────────────
 const isValidUrl = (val: string) => {
   if (!val) return true;
   try {
@@ -119,7 +115,6 @@ const isValidWhatsApp = (val: string) => {
   return /^\d{10,15}$/.test(val);
 };
 
-// ─── Social fields ───────────────────────────────────────────────────────────
 const socialFields = [
   {
     key: "github",
@@ -193,7 +188,6 @@ const socialFields = [
   },
 ];
 
-// ─── Field Error ─────────────────────────────────────────────────────────────
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return (
@@ -204,7 +198,6 @@ function FieldError({ msg }: { msg?: string }) {
   );
 }
 
-// ─── Empty form ──────────────────────────────────────────────────────────────
 const emptyForm: ProfileData = {
   headline: "",
   description: "",
@@ -221,7 +214,6 @@ const emptyForm: ProfileData = {
   },
 };
 
-// ─── Page ────────────────────────────────────────────────────────────────────
 export default function UserPage() {
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -446,7 +438,6 @@ export default function UserPage() {
 
   const liveErrors = validate(form, imagePreview);
 
-  // ── FIXED: type-safe lookup without invalid cast ───────────────────────────
   const getErr = (f: string): string | undefined => {
     if (!touched.has(f)) return undefined;
     const val = liveErrors[f];
@@ -472,7 +463,6 @@ export default function UserPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* ── Header ──────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-2">
@@ -508,7 +498,6 @@ export default function UserPage() {
           </button>
         </div>
 
-        {/* ── Form ────────────────────────────────────────────────── */}
         <AnimatePresence>
           {isEditing && (
             <motion.div
@@ -909,7 +898,6 @@ export default function UserPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Profile Preview Card ────────────────────────────────── */}
         <AnimatePresence>
           {savedProfile && !isEditing && (
             <motion.div
@@ -1068,7 +1056,6 @@ export default function UserPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Empty state ──────────────────────────────────────────── */}
         <AnimatePresence>
           {!savedProfile && !isEditing && (
             <motion.div

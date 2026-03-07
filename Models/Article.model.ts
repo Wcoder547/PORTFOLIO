@@ -4,7 +4,7 @@ export interface IArticle extends Document {
   title: string;
   slug: string;
   excerpt: string;
-  content: string; 
+  content: string;
   category: string;
   tags: string[];
   image: { public_id: string; url: string };
@@ -52,7 +52,6 @@ const ArticleSchema = new Schema<IArticle>(
   { timestamps: true },
 );
 
-// ✅ Replace with this
 ArticleSchema.pre("validate", async function () {
   if (this.isModified("title") && !this.slug) {
     this.slug = this.title

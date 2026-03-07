@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
     if (!email?.trim()) return apiError("Email is required", 400);
     if (!message?.trim()) return apiError("Message is required", 400);
 
-    // ── Save to DB ────────────────────────────────────────────────────────
     await MessageModel.create({
       name: name.trim(),
       email: email.trim(),
@@ -30,7 +29,6 @@ export async function POST(req: NextRequest) {
       isRead: false,
     });
 
-    // ── Send email ────────────────────────────────────────────────────────
     try {
       const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -54,7 +52,6 @@ export async function POST(req: NextRequest) {
         `,
       });
     } catch (emailErr) {
-      // Email failure should NOT block the user — message is already saved to DB
       console.error("[contact] Email send failed:", emailErr);
     }
 

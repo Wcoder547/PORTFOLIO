@@ -22,7 +22,6 @@ export interface UserProfile {
   };
 }
 
-// Module-level cache — Hero and Footer share one fetch, no double request
 let _cache: UserProfile | null = null;
 let _promise: Promise<void> | null = null;
 
@@ -32,6 +31,7 @@ export function useUserProfile() {
 
   useEffect(() => {
     if (_cache) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(_cache);
       setLoading(false);
       return;

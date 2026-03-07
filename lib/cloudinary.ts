@@ -7,7 +7,6 @@ cloudinary.config({
 });
 
 export async function uploadToCloudinary(file: File, folder: string) {
-  // Convert File → Buffer
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 

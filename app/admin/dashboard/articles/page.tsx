@@ -26,10 +26,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// ── Dynamic import — no SSR ────────────────────────────────────────────────────
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
-// ── Types ──────────────────────────────────────────────────────────────────────
 interface Article {
   _id: string;
   title: string;
@@ -55,7 +53,7 @@ if (typeof window !== "undefined") {
       typeof args[0] === "string" &&
       args[0].includes("A props object containing a")
     ) {
-      return; // suppress react-md-editor key spread warning
+      return;
     }
     originalError(...args);
   };
@@ -91,7 +89,6 @@ const emptyForm = {
   authorAvatar: "",
 };
 
-// ── Skeleton ───────────────────────────────────────────────────────────────────
 function ArticleSkeleton() {
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden animate-pulse">
@@ -106,7 +103,6 @@ function ArticleSkeleton() {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
 export default function ArticlesAdminPage() {
   const [view, setView] = useState<View>("list");
   const [articles, setArticles] = useState<Article[]>([]);
@@ -126,7 +122,6 @@ export default function ArticlesAdminPage() {
   const [newCategory, setNewCategory] = useState("");
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
 
-  // ── Load categories from localStorage after mount ─────────────────────────
   useEffect(() => {
     try {
       const stored = localStorage.getItem("admin_article_categories");
@@ -134,9 +129,7 @@ export default function ArticlesAdminPage() {
         const parsed = JSON.parse(stored) as string[];
         if (Array.isArray(parsed) && parsed.length > 0) setCategories(parsed);
       }
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -145,18 +138,14 @@ export default function ArticlesAdminPage() {
         "admin_article_categories",
         JSON.stringify(categories),
       );
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }, [categories]);
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Fetch articles ─────────────────────────────────────────────────────────
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
@@ -182,7 +171,6 @@ export default function ArticlesAdminPage() {
     fetchArticles();
   }, [fetchArticles]);
 
-  // ── Category management ────────────────────────────────────────────────────
   const addCategory = () => {
     const trimmed = newCategory.trim();
     if (!trimmed) return;
@@ -210,7 +198,6 @@ export default function ArticlesAdminPage() {
     showToast(`"${cat}" removed`);
   };
 
-  // ── Image handler ──────────────────────────────────────────────────────────
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -226,7 +213,6 @@ export default function ArticlesAdminPage() {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  // ── Open edit ──────────────────────────────────────────────────────────────
   const openEdit = (article: Article) => {
     setEditTarget(article);
     setForm({
@@ -256,7 +242,6 @@ export default function ArticlesAdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ── Save ───────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (saving) return;
     if (!form.title.trim()) {
@@ -313,7 +298,6 @@ export default function ArticlesAdminPage() {
     }
   };
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this article? This cannot be undone.")) return;
     setDeletingId(id);
@@ -332,7 +316,6 @@ export default function ArticlesAdminPage() {
     }
   };
 
-  // ── Quick toggle ───────────────────────────────────────────────────────────
   const quickToggle = async (
     article: Article,
     field: "published" | "featured",
@@ -374,7 +357,6 @@ export default function ArticlesAdminPage() {
     }
   };
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
   const filtered = articles.filter((a) => {
     const matchSearch =
       a.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -393,9 +375,6 @@ export default function ArticlesAdminPage() {
   const draftCount = articles.filter((a) => !a.published).length;
   const featuredCount = articles.filter((a) => a.featured).length;
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // LIST VIEW
-  // ════════════════════════════════════════════════════════════════════════════
   if (view === "list") {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -406,7 +385,6 @@ export default function ArticlesAdminPage() {
           </div>
         )}
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-black text-white flex items-center gap-3">
@@ -431,7 +409,6 @@ export default function ArticlesAdminPage() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               {
@@ -467,7 +444,6 @@ export default function ArticlesAdminPage() {
             ))}
           </div>
 
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -504,7 +480,6 @@ export default function ArticlesAdminPage() {
             {filtered.length} article{filtered.length !== 1 ? "s" : ""}
           </p>
 
-          {/* Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => (

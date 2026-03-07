@@ -1,11 +1,9 @@
-// Auto-calculate read time from markdown content
 export function calcReadTime(content: string): string {
   const words = content.trim().split(/\s+/).length;
   const mins = Math.max(1, Math.round(words / 200));
   return `${mins} min read`;
 }
 
-// Auto-extract Table of Contents from markdown h2/h3 headings
 export function extractTOC(content: string): { id: string; title: string }[] {
   const lines = content.split("\n");
   const toc: { id: string; title: string }[] = [];
@@ -27,7 +25,6 @@ export function extractTOC(content: string): { id: string; title: string }[] {
   return toc;
 }
 
-// Generate slug from title
 export function slugify(title: string): string {
   return title
     .toLowerCase()

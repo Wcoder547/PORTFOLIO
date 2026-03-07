@@ -3,14 +3,12 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import ArticleModel from "@/Models/Article.model";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-import { v2 as cloudinary } from "cloudinary";
 import { apiResponse } from "@/utils/apiResponse";
 import { apiError } from "@/utils/apiError";
 import { calcReadTime, extractTOC, slugify } from "@/lib/articles-utils";
 
 export const runtime = "nodejs";
 
-// ── GET all articles (admin — includes unpublished) ───────────────────────────
 export async function GET() {
   try {
     await dbConnect();
@@ -22,7 +20,6 @@ export async function GET() {
   }
 }
 
-// ── POST create article ───────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
@@ -42,14 +39,12 @@ export async function POST(req: NextRequest) {
     const authorBio = formData.get("authorBio") as string;
     const authorAvatar = formData.get("authorAvatar") as string;
 
-    // Validation
     if (!title?.trim()) return apiError("Title is required", 400);
     if (!excerpt?.trim()) return apiError("Excerpt is required", 400);
     if (!content?.trim()) return apiError("Content is required", 400);
     if (!category?.trim()) return apiError("Category is required", 400);
     if (!imageFile) return apiError("Cover image is required", 400);
 
-    // Image upload
     if (imageFile.size > 5 * 1024 * 1024)
       return apiError("Image must be under 5MB", 400);
     if (!imageFile.type.startsWith("image/"))
@@ -61,8 +56,7 @@ export async function POST(req: NextRequest) {
       url: uploaded.secure_url,
     };
 
-    // Build slug — ensure uniqueness
-    let baseSlug = slugify(title.trim());
+    const baseSlug = slugify(title.trim());
     let slug = baseSlug;
     let counter = 1;
     while (await ArticleModel.exists({ slug })) {

@@ -2,7 +2,6 @@ import Groq from "groq-sdk";
 import { z } from "zod";
 import { NextRequest } from "next/server";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type ChatRole = "user" | "assistant";
 
 interface ChatMessage {
@@ -10,7 +9,6 @@ interface ChatMessage {
   content: string;
 }
 
-// ─── Zod Validation ──────────────────────────────────────────────────────────
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().min(1).max(1500).trim(),
@@ -20,11 +18,10 @@ const RequestBodySchema = z.object({
   messages: z.array(MessageSchema).min(1).max(30),
 });
 
-// ─── Rate Limiter (In-Memory | Use Upstash Redis in production) ───────────────
 const rateStore = new Map<string, { count: number; resetAt: number }>();
 
 const RATE_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT = 15; // requests per window
+const RATE_LIMIT = 15;
 
 function getClientIP(req: NextRequest): string {
   return (
@@ -51,14 +48,12 @@ function checkRateLimit(ip: string): { limited: boolean; remaining: number } {
   return { limited: false, remaining: RATE_LIMIT - record.count };
 }
 
-// ─── Groq Client (Singleton) ──────────────────────────────────────────────────
 const groqClient = new Groq({
   apiKey: process.env.GROQ_API_KEY,
   maxRetries: 2,
   timeout: 20_000,
 });
 
-// ─── System Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `YOU ARE THE OFFICIAL AI REPRESENTATIVE OF WASEEM AKRAM — A HIGHLY SKILLED FULL-STACK DEVELOPER, SOFTWARE ENGINEER, AGENTIC AI ENGINEER, AND DEVOPS SPECIALIST.
 
 ALWAYS TRY TO USE ENGLISH LANGUAGE TO RESPOND, UNLESS THE USER ASKS IN URDU OR HINDI, THEN RESPOND IN THAT LANGUAGE.
@@ -261,16 +256,14 @@ EXECUTE WITH PRECISION.
 
 EXECUTE WITH PRECISION."`;
 
-// ─── Input Sanitizer ──────────────────────────────────────────────────────────
 function sanitize(text: string): string {
   return text
-    .replace(/<[^>]*>/g, "") // strip HTML tags
-    .replace(/[\x00-\x1F\x7F]/g, "") // remove control characters
+    .replace(/<[^>]*>/g, "")
+    .replace(/[\x00-\x1F\x7F]/g, "")
     .trim()
     .slice(0, 1500);
 }
 
-// ─── Security Headers ─────────────────────────────────────────────────────────
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -278,12 +271,9 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Cache-Control": "no-store, no-cache, must-revalidate",
 };
 
-// ─── Route Config ─────────────────────────────────────────────────────────────
-export const maxDuration = 30; // Vercel max streaming duration (seconds)
+export const maxDuration = 30;
 
-// ─── POST Handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  // 1. Rate limiting
   const ip = getClientIP(req);
   const { limited, remaining } = checkRateLimit(ip);
 
@@ -302,7 +292,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2. Parse JSON body safely
   let rawBody: unknown;
   try {
     rawBody = await req.json();
@@ -313,7 +302,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3. Validate with Zod
   const parsed = RequestBodySchema.safeParse(rawBody);
   if (!parsed.success) {
     return Response.json(
@@ -322,7 +310,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 4. Sanitize & prepare messages (keep last 10 for context window)
   const messages: ChatMessage[] = parsed.data.messages
     .slice(-10)
     .map((m) => ({ role: m.role, content: sanitize(m.content) }))
@@ -335,19 +322,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 5. Call Groq with streaming
   try {
     const stream = await groqClient.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
       stream: true,
-      max_tokens: 300, // ✅ was 120 — too low, caused cutoffs
+      max_tokens: 300,
       temperature: 0.4,
       top_p: 0.9,
-      stop: ["###"], // ✅ removed "Email:", "---", "\n\n" — they cut valid responses
+      stop: ["###"],
     });
 
-    // 6. Stream response to client
     const encoder = new TextEncoder();
 
     const readable = new ReadableStream({
@@ -378,7 +363,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    // 7. Typed Groq error handling
     const error = err as Error & { status?: number; error?: { type?: string } };
     const status = error.status ?? 500;
 

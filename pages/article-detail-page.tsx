@@ -15,9 +15,6 @@ import {
 import type { GetServerSideProps } from "next";
 import type { Article } from "@/lib/articles-data";
 
-// ── "use client" REMOVED — same fix as articles-page.tsx ─────────────────────
-// useState still works fine in pages/ dir without "use client"
-
 interface ArticleDetailPageProps {
   article: Article | null;
 }
@@ -25,7 +22,6 @@ interface ArticleDetailPageProps {
 export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // ── Guard: build-time or not-found ───────────────────────────────────────────
   if (!article) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -65,7 +61,6 @@ export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   return (
     <main className="min-h-screen py-16 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
-
         <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -253,11 +248,11 @@ export default function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   );
 }
 
-// ── SERVER-SIDE ONLY — runs at request time, never at build time ──────────────
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const slug = context.query.slug as string | undefined;
 
-  // No slug means visited directly as /article-detail-page — return null safely
+ 
   if (!slug) {
     return { props: { article: null } };
   }

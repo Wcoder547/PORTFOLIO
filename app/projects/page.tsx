@@ -11,7 +11,6 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 
-// ── Types matched to your ProjectModel ──────────────────────────────────────
 interface CloudinaryAsset {
   public_id: string;
   url: string;
@@ -35,7 +34,6 @@ interface Project {
   isVisible: boolean;
 }
 
-// ── Skeleton Card ────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden animate-pulse">
@@ -61,7 +59,6 @@ function SkeletonCard() {
   );
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,10 +73,8 @@ export default function ProjectsPage() {
 
         const json = await res.json();
 
-        // your apiResponse wraps data — adjust key if needed (data / result / projects)
         const raw: Project[] = json.data ?? json;
 
-        // only show visible projects, already sorted by order from backend
         setProjects(raw.filter((p) => p.isVisible));
       } catch (err: any) {
         setError(err.message || "Failed to load projects");
@@ -94,7 +89,6 @@ export default function ProjectsPage() {
   return (
     <main className="min-h-screen py-16 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
         <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,7 +101,6 @@ export default function ProjectsPage() {
           <span className="text-white font-medium">Projects</span>
         </motion.nav>
 
-        {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -121,7 +114,6 @@ export default function ProjectsPage() {
           </Link>
         </motion.div>
 
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -136,7 +128,6 @@ export default function ProjectsPage() {
           <div className="h-px mx-auto w-24 lg:w-32 bg-gradient-to-r from-emerald-400 via-white/60 to-transparent mt-6" />
         </motion.div>
 
-        {/* Error State */}
         {error && (
           <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
             <p className="text-red-400 text-lg font-medium">{error}</p>
@@ -148,7 +139,6 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && !error && projects.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center space-y-3">
             <p className="text-white/50 text-lg">No projects found.</p>
@@ -158,7 +148,6 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {loading
             ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />)

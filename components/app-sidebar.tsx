@@ -65,7 +65,6 @@ export function AppSidebar() {
         } as React.CSSProperties
       }
       className="border-r border-zinc-800">
-      {/* ── Nav ────────────────────────────────────────────── */}
       <SidebarContent className="px-2 py-3">
         <SidebarGroup>
           <SidebarGroupLabel className="mb-2 px-2 text-xs font-semibold uppercase tracking-widest text-zinc-500">
@@ -99,7 +98,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* ── Footer Dropdown ────────────────────────────────── */}
       <SidebarFooter className="border-t border-zinc-800 p-3">
         <SidebarMenu>
           <SidebarMenuItem>

@@ -12,7 +12,6 @@ export const metadata = {
 export default async function ArticlesPage() {
   const articles = await getAllArticles();
 
-  // Build categories dynamically from DB + always include "All" first
   const categories = [
     "All",
     ...Array.from(new Set(articles.map((a) => a.category))).sort(),

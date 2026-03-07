@@ -12,7 +12,6 @@ export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-// ── PATCH update ──────────────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
     await dbConnect();
@@ -104,7 +103,6 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
 }
 
-// ── DELETE ────────────────────────────────────────────────────────────────────
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   try {
     await dbConnect();

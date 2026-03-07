@@ -31,7 +31,6 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-900/60 backdrop-blur-xl">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        {/* ── Logo ── */}
         <motion.div
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="relative cursor-pointer select-none z-50"
@@ -82,7 +81,6 @@ export function Navbar() {
           </motion.div>
         </motion.div>
 
-        {/* ── Desktop Nav Links ── */}
         <div className="hidden items-center gap-1 text-sm text-white/70 md:flex lg:gap-2">
           {links.map((link) => (
             <motion.a
@@ -97,7 +95,6 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* ── Right: Hire Me + Hamburger ── */}
         <div className="flex items-center gap-3">
           {/* ── HIRE ME BUTTON (desktop only) ── */}
           <motion.button
@@ -145,7 +142,6 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* ── Mobile Drawer ── */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div

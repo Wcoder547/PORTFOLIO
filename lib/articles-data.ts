@@ -25,8 +25,6 @@ export interface Article {
   tableOfContents: { id: string; title: string }[];
 }
 
-// ── Serializes ANY Mongoose document into a plain JS object ──────────────────
-// JSON.parse(JSON.stringify()) strips ObjectId, Date, Buffer — all toJSON types
 function serialize<T>(data: unknown): T {
   return JSON.parse(JSON.stringify(data)) as T;
 }

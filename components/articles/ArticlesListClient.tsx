@@ -35,7 +35,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
   return (
     <main className="min-h-screen py-16 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
         <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -48,7 +47,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           <span className="text-white font-medium">Articles</span>
         </motion.nav>
 
-        {/* Back */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -62,7 +60,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           </Link>
         </motion.div>
 
-        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -78,7 +75,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           <div className="h-px mx-auto w-24 lg:w-32 bg-gradient-to-r from-emerald-400 via-white/60 to-transparent mt-6" />
         </motion.div>
 
-        {/* Search */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -96,7 +92,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           </div>
         </motion.div>
 
-        {/* Category filters — dynamic from DB */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -118,7 +113,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           </div>
         </motion.div>
 
-        {/* Count */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -128,7 +122,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           {filteredArticles.length !== 1 ? "s" : ""}
         </motion.div>
 
-        {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredArticles.map((article, index) => (
             <motion.article
@@ -188,7 +181,6 @@ export default function ArticlesListClient({ articles, categories }: Props) {
           ))}
         </div>
 
-        {/* Empty state */}
         {filteredArticles.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}

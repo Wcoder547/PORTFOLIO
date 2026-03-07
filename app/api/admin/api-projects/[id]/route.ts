@@ -9,7 +9,6 @@ import { v2 as cloudinary } from "cloudinary";
 
 export const runtime = "nodejs";
 
-// GET /api/admin/projects/[id]
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -25,7 +24,6 @@ export async function GET(
   }
 }
 
-// PUT /api/admin/projects/[id]
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -46,12 +44,12 @@ export async function PUT(
     const status = formData.get("status") as string;
     const liveUrl = formData.get("liveUrl") as string;
     const githubUrl = formData.get("githubUrl") as string;
-    const company = formData.get("company") as string; // ✅
+    const company = formData.get("company") as string;
     const order = formData.get("order") as string;
     const featured = formData.get("featured") as string;
     const isVisible = formData.get("isVisible") as string;
     const newThumbnail = formData.get("thumbnail") as File | null;
-    const removeThumbnail = formData.get("removeThumbnail") as string; // ✅
+    const removeThumbnail = formData.get("removeThumbnail") as string;
     const newGallery = formData.getAll("gallery") as File[];
 
     const removeGalleryRaw = formData.get("removeGallery") as string;
@@ -73,16 +71,13 @@ export async function PUT(
     if (!title?.trim()) return apiError("Title is required", 400);
     if (!description?.trim()) return apiError("Description is required", 400);
 
-    // ── Handle thumbnail ──────────────────────────────────────────────────────
     let thumbnailData = existing.thumbnail;
 
-    // User explicitly removed the image
     if (removeThumbnail === "true" && existing.thumbnail?.public_id) {
       await cloudinary.uploader.destroy(existing.thumbnail.public_id);
       thumbnailData = undefined;
     }
 
-    // User uploaded a new image
     if (newThumbnail && newThumbnail.size > 0) {
       if (newThumbnail.size > 5 * 1024 * 1024)
         return apiError("Thumbnail must be under 5MB", 400);
@@ -103,7 +98,6 @@ export async function PUT(
       };
     }
 
-    // ── Handle gallery ────────────────────────────────────────────────────────
     let updatedGallery = existing.images || [];
 
     if (removeGalleryIds.length > 0) {
@@ -147,7 +141,7 @@ export async function PUT(
           isVisible !== null ? isVisible === "true" : existing.isVisible,
         liveUrl: liveUrl?.trim() || undefined,
         githubUrl: githubUrl?.trim() || undefined,
-        company: company?.trim() || undefined, // ✅
+        company: company?.trim() || undefined,
         order: order ? parseInt(order) : existing.order,
       },
       { returnDocument: "after", runValidators: true },
@@ -167,7 +161,6 @@ export async function PUT(
   }
 }
 
-// DELETE /api/admin/projects/[id]
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

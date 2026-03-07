@@ -30,7 +30,7 @@ const FAQSchema = new Schema<IFAQ>(
     },
     category: {
       type: String,
-      default: "general", // ← was MISSING from schema — this was the real bug
+      default: "general",
     },
     order: { type: Number, default: 0 },
     isVisible: { type: Boolean, default: true },

@@ -8,7 +8,6 @@ import { apiResponse } from "@/utils/apiResponse";
 
 export const runtime = "nodejs";
 
-// GET /api/admin/projects
 export async function GET() {
   try {
     await dbConnect();
@@ -24,7 +23,6 @@ export async function GET() {
   }
 }
 
-// POST /api/admin/projects
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
@@ -38,7 +36,7 @@ export async function POST(req: NextRequest) {
     const status = formData.get("status") as string;
     const liveUrl = formData.get("liveUrl") as string;
     const githubUrl = formData.get("githubUrl") as string;
-    const company = formData.get("company") as string; // ✅
+    const company = formData.get("company") as string;
     const order = formData.get("order") as string;
     const featured = formData.get("featured") as string;
     const isVisible = formData.get("isVisible") as string;
@@ -53,12 +51,10 @@ export async function POST(req: NextRequest) {
       techStack = [];
     }
 
-    // ── Validation ────────────────────────────────────────────────────────────
     if (!title?.trim()) return apiError("Title is required", 400);
     if (title.trim().length > 100) return apiError("Title max 100 chars", 400);
     if (!description?.trim()) return apiError("Description is required", 400);
 
-    // ── Thumbnail upload (optional) ───────────────────────────────────────────
     let thumbnailData: { public_id: string; url: string } | undefined;
 
     if (thumbnailFile && thumbnailFile.size > 0) {
@@ -77,7 +73,6 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // ── Gallery upload ────────────────────────────────────────────────────────
     let galleryData: { public_id: string; url: string }[] = [];
 
     if (galleryFiles.length > 0) {
@@ -106,7 +101,7 @@ export async function POST(req: NextRequest) {
       featured: featured === "true",
       liveUrl: liveUrl?.trim() || undefined,
       githubUrl: githubUrl?.trim() || undefined,
-      company: company?.trim() || undefined, // ✅
+      company: company?.trim() || undefined,
       order: order ? parseInt(order) : 0,
       isVisible: isVisible !== "false",
     });

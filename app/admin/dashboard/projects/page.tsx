@@ -26,7 +26,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Project {
   id: string;
   title: string;
@@ -37,7 +36,6 @@ interface Project {
   company?: string;
 }
 
-// ─── API shape from MongoDB ───────────────────────────────────────────────────
 interface ProjectAPI {
   _id: string;
   title: string;
@@ -56,7 +54,6 @@ interface FormErrors {
   tech?: string;
 }
 
-// ─── Normalize MongoDB → frontend ────────────────────────────────────────────
 const normalize = (p: ProjectAPI): Project => ({
   id: p._id,
   title: p.title,
@@ -67,7 +64,6 @@ const normalize = (p: ProjectAPI): Project => ({
   company: p.company ?? "",
 });
 
-// ─── Validators ───────────────────────────────────────────────────────────────
 const isValidUrl = (v: string) => {
   if (!v) return false;
   try {
@@ -94,7 +90,6 @@ const validate = (form: Omit<Project, "id">): FormErrors => {
 
 const hasErrors = (e: FormErrors) => Object.values(e).some(Boolean);
 
-// ─── Tag colors ───────────────────────────────────────────────────────────────
 const tagColors = [
   "bg-blue-500/10 border-blue-500/30 text-blue-300",
   "bg-violet-500/10 border-violet-500/30 text-violet-300",
@@ -123,7 +118,6 @@ const emptyForm: Omit<Project, "id"> = {
   company: "",
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,7 +137,6 @@ export default function ProjectsPage() {
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // ── 1. Fetch all on mount ──────────────────────────────────────────────────
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
@@ -167,7 +160,6 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [fetchProjects]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const touch = (f: string) => setTouched((p) => new Set([...p, f]));
 
   const openAdd = () => {
@@ -184,12 +176,12 @@ export default function ProjectsPage() {
     setForm({
       title: p.title,
       description: p.description,
-      image: p.image, // existing Cloudinary URL
+      image: p.image,
       tech: [...p.tech],
       link: p.link,
       company: p.company ?? "",
     });
-    setImageFile(null); // no new file yet
+    setImageFile(null);
     setErrors({});
     setTouched(new Set());
     setTechInput("");
@@ -218,7 +210,7 @@ export default function ProjectsPage() {
       setErrors((e) => ({ ...e, image: "Image must be under 5MB." }));
       return;
     }
-    setImageFile(file); // store real File for FormData
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setForm((f) => ({ ...f, image: ev.target?.result as string }));
@@ -244,7 +236,6 @@ export default function ProjectsPage() {
   const removeTag = (tag: string) =>
     setForm((f) => ({ ...f, tech: f.tech.filter((t) => t !== tag) }));
 
-  // ── 2. Save — POST (new) or PUT (edit) with FormData ──────────────────────
   const handleSave = async () => {
     const allFields = new Set([
       "title",
@@ -268,7 +259,6 @@ export default function ProjectsPage() {
         : `/api/admin/api-projects/${editingId}`;
       const method = isNew ? "POST" : "PUT";
 
-      // ── Build FormData (backend uses req.formData()) ──────────────
       const fd = new FormData();
       fd.append("title", form.title.trim());
       fd.append("description", form.description.trim());
@@ -279,12 +269,10 @@ export default function ProjectsPage() {
       fd.append("isVisible", "true");
       if (form.company?.trim()) fd.append("company", form.company.trim());
 
-      // Only upload a new thumbnail if user selected a new file
       if (imageFile) {
         fd.append("thumbnail", imageFile);
       }
 
-      // On PUT: if user cleared the existing image
       if (!isNew && !form.image && !imageFile) {
         fd.append("removeThumbnail", "true");
       }
@@ -315,7 +303,6 @@ export default function ProjectsPage() {
     }
   };
 
-  // ── 3. Delete ──────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
     try {
@@ -345,7 +332,6 @@ export default function ProjectsPage() {
         : "border-zinc-700/50 focus:ring-blue-500/40 focus:border-transparent"
     }`;
 
-  // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -357,7 +343,6 @@ export default function ProjectsPage() {
     );
   }
 
-  // ── Fetch error state ─────────────────────────────────────────────────────
   if (fetchError) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -377,7 +362,6 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-2">
@@ -404,7 +388,6 @@ export default function ProjectsPage() {
           </button>
         </div>
 
-        {/* ── Add / Edit Form ──────────────────────────────────────── */}
         <AnimatePresence>
           {editingId !== null && (
             <motion.div
@@ -715,7 +698,6 @@ export default function ProjectsPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Project Cards ─────────────────────────────────────────── */}
         <div className="space-y-4">
           <AnimatePresence>
             {projects.length === 0 && !loading && (

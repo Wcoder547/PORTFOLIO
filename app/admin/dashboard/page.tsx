@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
 interface Stats {
   projects: number;
   testimonials: number;
@@ -48,7 +47,6 @@ interface Message {
   createdAt: string;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60_000);
@@ -74,7 +72,6 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-// ── Skeletons ──────────────────────────────────────────────────────────────────
 function StatSkeleton() {
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 animate-pulse">
@@ -99,7 +96,6 @@ function MessageSkeleton() {
   );
 }
 
-// ── Quick Actions config ───────────────────────────────────────────────────────
 const quickActions = [
   {
     label: "Add New Project",
@@ -139,7 +135,6 @@ const quickActions = [
   },
 ];
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<Date | null>(null);

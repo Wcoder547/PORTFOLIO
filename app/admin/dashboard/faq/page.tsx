@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface FAQ {
   id: string;
   question: string;
@@ -38,14 +37,12 @@ interface FormErrors {
   answer?: string;
 }
 
-// ─── Normalize MongoDB → frontend ─────────────────────────────────────────────
 const normalize = (f: FAQAPI): FAQ => ({
   id: f._id,
   question: f.question,
   answer: f.answer,
 });
 
-// ─── Validators ───────────────────────────────────────────────────────────────
 const validate = (form: Omit<FAQ, "id">): FormErrors => {
   const e: FormErrors = {};
   if (!form.question.trim()) e.question = "Question is required.";
@@ -71,7 +68,6 @@ function FieldError({ msg }: { msg?: string }) {
 
 const emptyForm: Omit<FAQ, "id"> = { question: "", answer: "" };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function FAQPage() {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +83,6 @@ export default function FAQPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // ── 1. Fetch on mount ─────────────────────────────────────────────────────
   const fetchFaqs = useCallback(async () => {
     try {
       setLoading(true);
@@ -111,7 +106,6 @@ export default function FAQPage() {
     fetchFaqs();
   }, [fetchFaqs]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const touch = (f: string) => setTouched((p) => new Set([...p, f]));
 
   const openAdd = () => {
@@ -141,7 +135,6 @@ export default function FAQPage() {
     setSaveError(null);
   };
 
-  // ── 2. Save ───────────────────────────────────────────────────────────────
   const handleSave = async () => {
     const allFields = new Set(["question", "answer"]);
     setTouched(allFields);
@@ -189,7 +182,6 @@ export default function FAQPage() {
     }
   };
 
-  // ── 3. Delete ─────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
     try {
@@ -217,7 +209,6 @@ export default function FAQPage() {
         : "border-zinc-700/50 focus:ring-violet-500/40 focus:border-transparent"
     }`;
 
-  // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -229,7 +220,6 @@ export default function FAQPage() {
     );
   }
 
-  // ── Fetch error state ─────────────────────────────────────────────────────
   if (fetchError) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -249,7 +239,6 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-2">
@@ -276,7 +265,6 @@ export default function FAQPage() {
           </button>
         </div>
 
-        {/* ── Stats bar ────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4">
           {[
             {
@@ -308,7 +296,6 @@ export default function FAQPage() {
           ))}
         </div>
 
-        {/* ── Add / Edit Form ──────────────────────────────────────── */}
         <AnimatePresence>
           {editingId !== null && (
             <motion.div
@@ -337,7 +324,6 @@ export default function FAQPage() {
               </div>
 
               <div className="p-6 space-y-5">
-                {/* Question */}
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     <HelpCircle className="h-3.5 w-3.5 text-violet-400" />
@@ -485,7 +471,6 @@ export default function FAQPage() {
           )}
         </AnimatePresence>
 
-        {/* ── FAQ List ──────────────────────────────────────────────── */}
         <div className="space-y-3">
           <AnimatePresence>
             {faqs.length === 0 && !loading && (
@@ -496,7 +481,7 @@ export default function FAQPage() {
                 <HelpCircle className="h-12 w-12 text-zinc-700 mb-4" />
                 <p className="text-zinc-500 font-medium">No FAQ items yet.</p>
                 <p className="text-xs text-zinc-600 mt-1">
-                  Click "Add FAQ" to get started.
+                  Click &quot;Add FAQ&quot; to get started.
                 </p>
               </motion.div>
             )}

@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
 interface Experience {
   id: string;
   company: string;
@@ -29,7 +28,6 @@ interface Experience {
   techStack: string[];
 }
 
-// ─── API shape from MongoDB has _id ───────────────────────────────────────────
 interface ExperienceAPI {
   _id: string;
   company: string;
@@ -39,7 +37,6 @@ interface ExperienceAPI {
   techStack: string[];
 }
 
-// ─── Normalize MongoDB _id → id ───────────────────────────────────────────────
 const normalize = (e: ExperienceAPI): Experience => ({
   id: e._id,
   company: e.company,
@@ -49,7 +46,6 @@ const normalize = (e: ExperienceAPI): Experience => ({
   techStack: e.techStack ?? [],
 });
 
-// ─── Empty form ────────────────────────────────────────────────────────────────
 const emptyForm: Omit<Experience, "id"> = {
   company: "",
   role: "",
@@ -58,7 +54,6 @@ const emptyForm: Omit<Experience, "id"> = {
   techStack: [],
 };
 
-// ─── Tech badge colors ────────────────────────────────────────────────────────
 const tagColors = [
   "bg-blue-500/10 border-blue-500/30 text-blue-300",
   "bg-violet-500/10 border-violet-500/30 text-violet-300",
@@ -80,7 +75,6 @@ export default function ExperiencePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // ── 1. Fetch all on mount ─────────────────────────────────────────────────
   const fetchExperiences = useCallback(async () => {
     try {
       setLoading(true);
@@ -105,7 +99,6 @@ export default function ExperiencePage() {
     fetchExperiences();
   }, [fetchExperiences]);
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
   const openAdd = () => {
     setForm(emptyForm);
     setTechInput("");
@@ -144,7 +137,6 @@ export default function ExperiencePage() {
   const removeTag = (tag: string) =>
     setForm((f) => ({ ...f, techStack: f.techStack.filter((t) => t !== tag) }));
 
-  // ── 2. Save — POST (new) or PUT (edit) ───────────────────────────────────
   const handleSave = async () => {
     if (!form.company || !form.role || !form.duration) return;
 
@@ -196,7 +188,6 @@ export default function ExperiencePage() {
     }
   };
 
-  // ── 3. Delete ─────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
 
@@ -211,7 +202,6 @@ export default function ExperiencePage() {
       setExperiences((prev) => prev.filter((e) => e.id !== id));
     } catch (err: unknown) {
       console.error("[Delete Experience]", err);
-      // optionally show a toast here
     } finally {
       setDeleteId(null);
     }
@@ -220,7 +210,6 @@ export default function ExperiencePage() {
   const isFormValid =
     form.company.trim() && form.role.trim() && form.duration.trim();
 
-  // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -232,7 +221,6 @@ export default function ExperiencePage() {
     );
   }
 
-  // ── Fetch error state ─────────────────────────────────────────────────────
   if (fetchError) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -252,7 +240,6 @@ export default function ExperiencePage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* ── Header ───────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-2">
@@ -281,7 +268,6 @@ export default function ExperiencePage() {
           </button>
         </div>
 
-        {/* ── Add / Edit Form ───────────────────────────────────────── */}
         <AnimatePresence>
           {editingId !== null && (
             <motion.div
@@ -290,7 +276,6 @@ export default function ExperiencePage() {
               exit={{ opacity: 0, y: -12, scale: 0.98 }}
               transition={{ duration: 0.2 }}
               className="rounded-2xl border border-emerald-500/30 bg-zinc-900/80 shadow-2xl shadow-emerald-500/5 overflow-hidden">
-              {/* Form header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-emerald-500/5">
                 <h2 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
                   {editingId === "new" ? (
@@ -311,7 +296,6 @@ export default function ExperiencePage() {
               </div>
 
               <div className="p-6 space-y-5">
-                {/* Row 1: Company + Role */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
@@ -343,7 +327,6 @@ export default function ExperiencePage() {
                   </div>
                 </div>
 
-                {/* Row 2: Duration */}
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     <Calendar className="h-3.5 w-3.5 text-emerald-400" />
@@ -359,7 +342,6 @@ export default function ExperiencePage() {
                   />
                 </div>
 
-                {/* Row 3: Description */}
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     Description
@@ -381,7 +363,6 @@ export default function ExperiencePage() {
                   </div>
                 </div>
 
-                {/* Row 4: Tech Stack */}
                 <div className="space-y-2.5">
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     <Code2 className="h-3.5 w-3.5 text-emerald-400" />
@@ -430,7 +411,6 @@ export default function ExperiencePage() {
                   )}
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
                   <div>
                     {!isFormValid && (
@@ -483,7 +463,6 @@ export default function ExperiencePage() {
           )}
         </AnimatePresence>
 
-        {/* ── Experience List ───────────────────────────────────────── */}
         <div className="space-y-4">
           <AnimatePresence>
             {experiences.length === 0 && !loading && (

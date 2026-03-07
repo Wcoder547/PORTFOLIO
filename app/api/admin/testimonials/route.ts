@@ -8,7 +8,6 @@ import { apiResponse } from "@/utils/apiResponse";
 
 export const runtime = "nodejs";
 
-// GET /api/admin/testimonials
 export async function GET() {
   try {
     await dbConnect();
@@ -24,7 +23,6 @@ export async function GET() {
   }
 }
 
-// POST /api/admin/testimonials
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
@@ -37,7 +35,6 @@ export async function POST(req: NextRequest) {
     const avatarFile = formData.get("avatar") as File | null;
     const avatarUrl = formData.get("avatarUrl") as string | null;
 
-    // ── Validation ────────────────────────────────────────────────────────────
     if (!quote?.trim()) return apiError("Quote is required", 400);
     if (quote.trim().length < 30)
       return apiError("Quote must be at least 30 chars", 400);
@@ -50,7 +47,6 @@ export async function POST(req: NextRequest) {
     if (location.trim().length > 80)
       return apiError("Location max 80 chars", 400);
 
-    // ── Avatar (file upload OR external URL) ──────────────────────────────────
     let avatarData: { public_id?: string; url: string } | undefined;
 
     if (avatarFile && avatarFile.size > 0) {
@@ -65,7 +61,7 @@ export async function POST(req: NextRequest) {
       );
       avatarData = { public_id: uploaded.public_id, url: uploaded.secure_url };
     } else if (avatarUrl?.startsWith("http")) {
-      avatarData = { url: avatarUrl }; // no public_id — external URL
+      avatarData = { url: avatarUrl };
     }
 
     const testimonial = await TestimonialModel.create({

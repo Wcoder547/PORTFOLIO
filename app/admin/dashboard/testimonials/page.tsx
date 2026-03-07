@@ -25,7 +25,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Testimonial {
   id: string;
   quote: string;
@@ -52,7 +51,6 @@ interface FormErrors {
   avatar?: string;
 }
 
-// ─── Normalize MongoDB → frontend ────────────────────────────────────────────
 const normalize = (t: TestimonialAPI): Testimonial => ({
   id: t._id,
   quote: t.quote,
@@ -62,7 +60,6 @@ const normalize = (t: TestimonialAPI): Testimonial => ({
   avatar: t.avatar?.url ?? null,
 });
 
-// ─── Validators ───────────────────────────────────────────────────────────────
 const validate = (form: Omit<Testimonial, "id">): FormErrors => {
   const e: FormErrors = {};
   if (!form.quote.trim()) e.quote = "Quote is required.";
@@ -106,7 +103,6 @@ const emptyForm: Omit<Testimonial, "id"> = {
   avatar: null,
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function TestimonialsPage() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +122,6 @@ export default function TestimonialsPage() {
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // ── 1. Fetch on mount ──────────────────────────────────────────────────────
   const fetchTestimonials = useCallback(async () => {
     try {
       setLoading(true);
@@ -148,7 +143,6 @@ export default function TestimonialsPage() {
     fetchTestimonials();
   }, [fetchTestimonials]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const touch = (f: string) => setTouched((p) => new Set([...p, f]));
 
   const openAdd = () => {
@@ -173,7 +167,6 @@ export default function TestimonialsPage() {
     setErrors({});
     setTouched(new Set());
     setSaveError(null);
-    // Cloudinary URLs contain "cloudinary.com" → upload mode; plain external → url mode
     setAvatarMode(
       t.avatar && !t.avatar.includes("cloudinary.com") ? "url" : "upload",
     );
@@ -214,7 +207,6 @@ export default function TestimonialsPage() {
     if (file) handleAvatarFile(file);
   };
 
-  // ── 2. Save (FormData — supports optional file upload) ─────────────────────
   const handleSave = async () => {
     const allFields = new Set(["quote", "author", "title", "location"]);
     setTouched(allFields);
@@ -274,7 +266,6 @@ export default function TestimonialsPage() {
     }
   };
 
-  // ── 3. Delete ─────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     setDeleteId(id);
     try {
@@ -304,7 +295,6 @@ export default function TestimonialsPage() {
         : "border-zinc-700/50 focus:ring-amber-500/40 focus:border-transparent"
     }`;
 
-  // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -316,7 +306,6 @@ export default function TestimonialsPage() {
     );
   }
 
-  // ── Fetch error state ─────────────────────────────────────────────────────
   if (fetchError) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -336,7 +325,6 @@ export default function TestimonialsPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-2">
@@ -364,7 +352,6 @@ export default function TestimonialsPage() {
           </button>
         </div>
 
-        {/* ── Add / Edit Form ──────────────────────────────────────── */}
         <AnimatePresence>
           {editingId !== null && (
             <motion.div
@@ -701,7 +688,6 @@ export default function TestimonialsPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Testimonials List ─────────────────────────────────────── */}
         <div className="space-y-4">
           <AnimatePresence>
             {testimonials.length === 0 && !loading && (

@@ -7,7 +7,6 @@ import { apiResponse } from "@/utils/apiResponse";
 
 export const runtime = "nodejs";
 
-// ✅ GET ALL — NO params here
 export async function GET() {
   try {
     await dbConnect();
@@ -21,7 +20,6 @@ export async function GET() {
   }
 }
 
-// POST /api/admin/faq
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();

@@ -9,7 +9,6 @@ import { apiResponse } from "@/utils/apiResponse";
 
 export const runtime = "nodejs";
 
-// GET /api/admin/testimonials/[id]
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -28,7 +27,6 @@ export async function GET(
   }
 }
 
-// PUT /api/admin/testimonials/[id]
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -49,7 +47,6 @@ export async function PUT(
     const avatarUrl = formData.get("avatarUrl") as string | null;
     const removeAvatar = formData.get("removeAvatar") as string | null;
 
-    // ── Validation ────────────────────────────────────────────────────────────
     if (!quote?.trim()) return apiError("Quote is required", 400);
     if (quote.trim().length < 30)
       return apiError("Quote must be at least 30 chars", 400);
@@ -58,17 +55,14 @@ export async function PUT(
     if (!title?.trim()) return apiError("Title is required", 400);
     if (!location?.trim()) return apiError("Location is required", 400);
 
-    // ── Handle avatar ─────────────────────────────────────────────────────────
     let avatarData = existing.avatar;
 
     if (removeAvatar === "true") {
-      // User cleared the avatar
       if (existing.avatar?.public_id) {
         await cloudinary.uploader.destroy(existing.avatar.public_id);
       }
       avatarData = undefined;
     } else if (newAvatarFile && newAvatarFile.size > 0) {
-      // New file uploaded → delete old Cloudinary image if any
       if (newAvatarFile.size > 3 * 1024 * 1024)
         return apiError("Avatar must be under 3MB", 400);
       if (!newAvatarFile.type.startsWith("image/"))
@@ -84,13 +78,11 @@ export async function PUT(
       );
       avatarData = { public_id: uploaded.public_id, url: uploaded.secure_url };
     } else if (avatarUrl?.startsWith("http")) {
-      // Switched to URL mode — delete old Cloudinary image if any
       if (existing.avatar?.public_id) {
         await cloudinary.uploader.destroy(existing.avatar.public_id);
       }
-      avatarData = { url: avatarUrl }; // no public_id
+      avatarData = { url: avatarUrl };
     }
-    // else: no change to avatar — keep existing.avatar
 
     const updated = await TestimonialModel.findByIdAndUpdate(
       id,
@@ -120,7 +112,6 @@ export async function PUT(
   }
 }
 
-// DELETE /api/admin/testimonials/[id]
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -132,7 +123,6 @@ export async function DELETE(
     const testimonial = await TestimonialModel.findById(id);
     if (!testimonial) return apiError("Testimonial not found", 404);
 
-    // Delete Cloudinary avatar only if it was uploaded (has public_id)
     if (testimonial.avatar?.public_id) {
       await cloudinary.uploader.destroy(testimonial.avatar.public_id);
     }

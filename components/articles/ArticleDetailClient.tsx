@@ -22,7 +22,6 @@ interface Props {
   article: Article;
 }
 
-// ── Extract TOC from raw markdown ─────────────────────────────────────────────
 function extractToc(markdown: string): TocItem[] {
   const lines = markdown.split("\n");
   const toc: TocItem[] = [];
@@ -31,10 +30,7 @@ function extractToc(markdown: string): TocItem[] {
     const match = line.match(/^(#{1,3})\s+(.+)/);
     if (match) {
       const level = match[1].length;
-      const title = match[2]
-        .trim()
-        .replace(/\*\*/g, "") // strip bold markers
-        .replace(/`/g, ""); // strip inline code markers
+      const title = match[2].trim().replace(/\*\*/g, "").replace(/`/g, "");
       const id = title
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
@@ -47,7 +43,6 @@ function extractToc(markdown: string): TocItem[] {
   return toc;
 }
 
-// ── Marked instance — adds id to headings for anchor links ───────────────────
 const markedInstance = new Marked({
   async: false,
   breaks: true,
@@ -70,7 +65,6 @@ export default function ArticleDetailClient({ article }: Props) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [htmlContent, setHtmlContent] = useState<string>("");
 
-  // ✅ Generate TOC dynamically from markdown — always in sync
   const tableOfContents = useMemo(
     () => extractToc(article.content),
     [article.content],
