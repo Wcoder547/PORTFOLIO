@@ -56,9 +56,9 @@ export function Contact() {
 
       {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.15 }}
         className="mb-20"
       >
         <div className="pb-5 border-b border-white/10">
@@ -72,9 +72,9 @@ export function Contact() {
 
         {/* Left — info */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          viewport={{ once: true, amount: 0.15 }}
           className="space-y-8"
         >
           <p className="text-[24px] lg:text-[28px] text-[#bbb] font-light leading-[1.7] tracking-[-0.01em]">
@@ -108,10 +108,10 @@ export function Contact() {
 
         {/* Right — form */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* Feedback banners */}
           {status === "success" && (

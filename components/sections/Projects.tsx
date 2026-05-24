@@ -49,9 +49,9 @@ export function Projects() {
 
       {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.15 }}
         className="mb-20"
       >
         <div className="flex items-end justify-between pb-5 border-b border-white/10">
@@ -106,9 +106,9 @@ export function Projects() {
           {projects.map((project, index) => (
             <motion.div
               key={project._id}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.15 }}
               transition={{ delay: index * 0.07 }}
               className="group grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-16 py-14 border-b border-white/8 items-start"
             >
@@ -220,7 +220,7 @@ export function Projects() {
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
+          viewport={{ once: true, amount: 0.15 }}
           className="mt-16"
         >
           <Link

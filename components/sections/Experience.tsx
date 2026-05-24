@@ -49,9 +49,9 @@ export function Experience() {
     <section id="experience" className="py-28 px-6 lg:px-16 max-w-6xl mx-auto">
       {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.15 }}
         className="mb-20"
       >
         <div className="flex items-end justify-between pb-5 border-b border-white/10">
@@ -72,10 +72,10 @@ export function Experience() {
           experiences.map((exp, index) => (
             <motion.div
               key={exp._id}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ delay: index * 0.05, duration: 0.5 }}
               className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 lg:gap-16 py-14 border-b border-white/8 group"
             >
               {/* Left — duration */}

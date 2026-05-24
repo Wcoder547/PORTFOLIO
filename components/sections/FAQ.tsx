@@ -29,9 +29,9 @@ export function FAQ() {
 
       {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.15 }}
         className="mb-20"
       >
         <div className="flex items-end justify-between pb-5 border-b border-white/10">
@@ -68,9 +68,9 @@ export function FAQ() {
           {faqs.map((faq, index) => (
             <motion.div
               key={faq._id}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.15 }}
               transition={{ delay: index * 0.06 }}
               className="border-b border-white/8"
             >

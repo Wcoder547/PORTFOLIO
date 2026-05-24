@@ -53,7 +53,7 @@ export function Testimonials() {
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.15 }}
         className="mb-20"
       >
         <div className="flex items-end justify-between pb-5 border-b border-white/10">

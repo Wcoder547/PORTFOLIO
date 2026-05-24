@@ -15,9 +15,9 @@ export default function ArticlesClient({ articles }: Props) {
 
       {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.15 }}
         className="mb-20"
       >
         <div className="flex items-end justify-between pb-5 border-b border-white/10">
@@ -44,9 +44,9 @@ export default function ArticlesClient({ articles }: Props) {
             {articles.map((article, index) => (
               <motion.article
                 key={article.slug}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.15 }}
                 transition={{ delay: index * 0.07 }}
                 className="group bg-[#0d0d0d] p-9 hover:bg-white/[0.03] transition-colors duration-300 flex flex-col"
               >
@@ -125,7 +125,7 @@ export default function ArticlesClient({ articles }: Props) {
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.15 }}
             className="mt-16"
           >
             <Link
