@@ -2,13 +2,14 @@
 import { motion } from "framer-motion";
 import { FaGithub, FaLinkedin, FaInstagram, FaXTwitter, FaWhatsapp } from "react-icons/fa6";
 import { useUserProfile } from "../hooks/useUserProfile";
+import type { Transition } from "framer-motion";
+
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: "easeOut", delay },
+  transition: { duration: 0.6, ease: "easeOut", delay } as Transition,
 });
-
 export function Hero() {
   const { user, loading } = useUserProfile();
 
