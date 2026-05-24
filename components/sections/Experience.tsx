@@ -1,8 +1,6 @@
 "use client";
-
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { FiCalendar, FiHome } from "react-icons/fi";
 
 interface Experience {
   _id: string;
@@ -13,29 +11,6 @@ interface Experience {
   techStack: string[];
 }
 
-function ExperienceSkeleton() {
-  return (
-    <div className="space-y-10">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="pl-8 lg:pl-12 space-y-3 animate-pulse">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-white/10" />
-            <div className="h-5 w-48 bg-white/10 rounded" />
-          </div>
-          <div className="h-4 w-36 bg-white/10 rounded" />
-          <div className="h-4 w-full bg-white/10 rounded" />
-          <div className="h-4 w-5/6 bg-white/10 rounded" />
-          <div className="flex gap-2 flex-wrap">
-            {Array.from({ length: 4 }).map((_, j) => (
-              <div key={j} className="h-7 w-16 rounded-full bg-white/10" />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function Experience() {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,75 +19,100 @@ export function Experience() {
     fetch("/api/admin/experience")
       .then((r) => r.json())
       .then((json) => {
-        if (json.data) setExperiences(json.data);
+        if (json.data) setExperiences([...json.data].reverse());
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
+  if (loading) {
+    return (
+      <section id="experience" className="py-28 px-6 lg:px-16 max-w-6xl mx-auto">
+        <div className="animate-pulse space-y-16">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-[200px_1fr] gap-12">
+              <div className="h-4 w-32 bg-white/10 rounded mt-1" />
+              <div className="space-y-4">
+                <div className="h-6 w-56 bg-white/10 rounded" />
+                <div className="h-4 w-40 bg-white/10 rounded" />
+                <div className="h-4 w-full bg-white/10 rounded" />
+                <div className="h-4 w-4/5 bg-white/10 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section
-      id="experience"
-      className="py-24 px-6 md:px-12 lg:px-16 max-w-7xl mx-auto">
+    <section id="experience" className="py-28 px-6 lg:px-16 max-w-6xl mx-auto">
+      {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
-        className="mb-20 text-center">
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-white to-emerald-300 bg-clip-text text-transparent drop-shadow-2xl mb-6">
-          My Experience
-        </h2>
-        <div className="h-px mx-auto w-24 lg:w-32 bg-gradient-to-r from-emerald-400 via-white/60 to-transparent" />
+        viewport={{ once: true }}
+        className="mb-20"
+      >
+        <div className="flex items-end justify-between pb-5 border-b border-white/10">
+          <h2 className="text-[clamp(48px,7vw,88px)] font-bold text-white leading-none tracking-[-0.03em]">
+            Experience
+          </h2>
+          <span className="text-[11px] tracking-[0.25em] uppercase text-[#555] mb-2">
+            {experiences.length} roles
+          </span>
+        </div>
       </motion.div>
 
-      <div className="max-w-3xl">
-        {loading ? (
-          <ExperienceSkeleton />
-        ) : experiences.length === 0 ? (
-          <p className="text-center text-white/50 py-16">
-            No experience entries yet.
-          </p>
+      {/* Experience list */}
+      <div className="space-y-0">
+        {experiences.length === 0 ? (
+          <p className="text-[#666] text-base">No experience entries yet.</p>
         ) : (
           experiences.map((exp, index) => (
             <motion.div
               key={exp._id}
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="relative pl-8 [&:not(:last-child)]:pb-12 lg:pl-12">
-              {/* Left line */}
-              <div className="absolute left-3 top-2.5 h-full w-[2px] bg-gradient-to-b from-emerald-400/50 via-white/20 to-transparent" />
-              {/* Circle */}
-              <div className="border-emerald-500/80 bg-white/90 absolute left-[2px] top-0 size-3 rounded-full border-2 shadow-md" />
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.08 }}
+              className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 lg:gap-16 py-14 border-b border-white/8 group"
+            >
+              {/* Left — duration */}
+              <div className="pt-1">
+                <span
+                  className="text-[12px] tracking-[0.1em] uppercase text-[#888]"
+                  style={{ fontFamily: "monospace" }}
+                >
+                  {exp.duration}
+                </span>
+              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-2 border-emerald-500/40 backdrop-blur-sm shadow-lg">
-                    <FiHome className="size-5 text-emerald-400" />
-                  </div>
-                  <span className="text-xl font-semibold text-white">
-                    {exp.company}
-                  </span>
-                </div>
-
+              {/* Right — content */}
+              <div className="space-y-5">
+                {/* Role + Company */}
                 <div>
-                  <h3 className="text-lg lg:text-xl font-semibold text-white">
+                  <h3 className="text-[22px] font-semibold text-white tracking-[-0.02em] leading-snug">
                     {exp.role}
                   </h3>
-                  <div className="mt-1 flex items-center gap-2 text-sm text-white/70">
-                    <FiCalendar className="size-4" />
-                    <span>{exp.duration}</span>
-                  </div>
+                  <p className="text-[15px] text-[#aaa] mt-2 tracking-wide font-light">
+                    {exp.company}
+                  </p>
                 </div>
 
-                <p className="text-white/80 leading-relaxed max-w-2xl">
+                {/* Description */}
+                <p className="text-[15px] text-[#999] leading-[1.85] max-w-2xl font-light">
                   {exp.description}
                 </p>
 
+                {/* Tech stack */}
                 <div className="flex flex-wrap gap-2 pt-2">
                   {exp.techStack.map((tech) => (
                     <span
                       key={tech}
-                      className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/90 backdrop-blur-sm hover:bg-white/10 hover:border-white/30 transition-all duration-200">
+                      className="text-[11px] tracking-[0.08em] uppercase px-3 py-[6px] border border-white/12 text-[#888] hover:text-[#ccc] hover:border-white/25 transition-all duration-200"
+                      style={{ borderRadius: "2px" }}
+                    >
                       {tech}
                     </span>
                   ))}

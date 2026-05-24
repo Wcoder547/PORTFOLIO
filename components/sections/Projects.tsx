@@ -1,15 +1,9 @@
 "use client";
-
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import {
-  FiExternalLink,
-  FiGithub,
-  FiAlertCircle,
-  FiRefreshCw,
-} from "react-icons/fi";
+import { FiExternalLink, FiGithub, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
 
 interface Project {
   _id: string;
@@ -23,24 +17,6 @@ interface Project {
   featured: boolean;
 }
 
-function ProjectSkeleton() {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4 animate-pulse">
-      <div className="h-64 rounded-xl bg-white/10" />
-      <div className="h-6 bg-white/10 rounded w-3/4" />
-      <div className="space-y-2">
-        <div className="h-4 bg-white/10 rounded w-full" />
-        <div className="h-4 bg-white/10 rounded w-5/6" />
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-7 w-16 rounded-full bg-white/10" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,15 +27,10 @@ export function Projects() {
     setError(null);
     try {
       const res = await fetch("/api/admin/api-projects");
-
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("application/json")) {
-        throw new Error(
-          `Expected JSON but got ${res.status} ${res.statusText}. ` +
-            `Check that /api/projects/route.ts exists and MONGODB_URI is set.`,
-        );
+        throw new Error(`Expected JSON but got ${res.status} ${res.statusText}.`);
       }
-
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to fetch");
       setProjects(json.data ?? []);
@@ -71,160 +42,199 @@ export function Projects() {
     }
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  useEffect(() => { fetchProjects(); }, []);
 
   return (
-    <section
-      id="projects"
-      className="py-24 px-6 md:px-12 lg:px-16 max-w-7xl mx-auto">
+    <section id="projects" className="py-28 px-6 lg:px-16 max-w-6xl mx-auto">
+
+      {/* Section header */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="mb-20 text-center">
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-white to-emerald-300 bg-clip-text text-transparent drop-shadow-2xl mb-6">
-          My Projects
-        </h2>
-        <p className="text-white/70 text-lg max-w-2xl mx-auto">
-          Projects I worked on. Each containing its own case study.
-        </p>
-        <div className="h-px mx-auto w-24 lg:w-32 bg-gradient-to-r from-emerald-400 via-white/60 to-transparent mt-6" />
+        className="mb-20"
+      >
+        <div className="flex items-end justify-between pb-5 border-b border-white/10">
+          <h2 className="text-[clamp(48px,7vw,88px)] font-bold text-white leading-none tracking-[-0.03em]">
+            Projects
+          </h2>
+          {!loading && (
+            <span className="text-[11px] tracking-[0.25em] uppercase text-[#555] mb-2">
+              {projects.length} works
+            </span>
+          )}
+        </div>
       </motion.div>
 
+      {/* Error state */}
       {!loading && error && (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <FiAlertCircle className="size-10 text-red-400" />
-          <p className="text-red-300 text-sm max-w-md">{error}</p>
+        <div className="flex flex-col items-center gap-4 py-20 text-center">
+          <FiAlertCircle className="size-8 text-[#666]" />
+          <p className="text-[#555] text-sm max-w-md">{error}</p>
           <button
             onClick={fetchProjects}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-all border border-white/20">
+            className="flex items-center gap-2 px-5 py-2.5 border border-white/10 text-[#888] hover:text-white hover:border-white/25 text-sm transition-all duration-200"
+            style={{ borderRadius: "2px" }}
+          >
             <FiRefreshCw className="size-4" /> Try again
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:gap-10">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => <ProjectSkeleton key={i} />)
-          : projects.map((project, index) => (
-              <motion.div
-                key={project._id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group flex flex-col rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-6 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 overflow-hidden">
-                <div className="relative h-64 lg:h-72 rounded-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
-                  {project.thumbnail?.url ? (
+      {/* Skeleton */}
+      {loading && (
+        <div className="space-y-0">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="py-10 border-b border-white/5 animate-pulse">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-10 items-start">
+                <div className="space-y-4">
+                  <div className="h-4 w-12 bg-white/8 rounded" />
+                  <div className="h-8 w-3/4 bg-white/8 rounded" />
+                  <div className="h-4 w-full bg-white/5 rounded" />
+                  <div className="h-4 w-5/6 bg-white/5 rounded" />
+                </div>
+                <div className="h-56 bg-white/5 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Project list */}
+      {!loading && !error && (
+        <div className="space-y-0">
+          {projects.map((project, index) => (
+            <motion.div
+              key={project._id}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.07 }}
+              className="group grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-16 py-14 border-b border-white/8 items-start"
+            >
+              {/* Left — text */}
+              <div className="space-y-5 order-2 lg:order-1">
+                {/* Index + featured */}
+                <div className="flex items-center gap-4">
+                  <span
+                    className="text-[12px] text-[#444] font-mono tracking-widest"
+                  >
+                    _{String(index + 1).padStart(2, "0")}
+                  </span>
+                  {project.featured && (
+                    <span
+                      className="text-[10px] tracking-[0.12em] uppercase px-2.5 py-1 border border-white/15 text-[#888]"
+                      style={{ borderRadius: "2px" }}
+                    >
+                      Featured
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <h3 className="text-[22px] lg:text-[26px] font-semibold text-white tracking-[-0.02em] leading-snug">
+                  {project.title}
+                </h3>
+
+                {/* Company */}
+                {project.company && (
+                  <p className="text-[14px] text-[#888] font-light tracking-wide">
+                    {project.company}
+                  </p>
+                )}
+
+                {/* Description */}
+                <p className="text-[15px] text-[#888] leading-[1.85] font-light max-w-lg">
+                  {project.description}
+                </p>
+
+                {/* Tech stack */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {project.techStack.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[11px] tracking-[0.07em] uppercase px-3 py-[6px] border border-white/10 text-[#777] hover:text-[#bbb] hover:border-white/22 transition-all duration-200"
+                      style={{ borderRadius: "2px" }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Links */}
+                <div className="flex items-center gap-4 pt-2">
+                  {project.liveUrl && (
+                    <Link
+                      href={project.liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[13px] text-[#999] hover:text-white transition-colors duration-200 group/link"
+                    >
+                      <FiExternalLink className="size-4 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform duration-200" />
+                      Live preview
+                    </Link>
+                  )}
+                  {project.githubUrl && (
+                    <Link
+                      href={project.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[13px] text-[#666] hover:text-[#aaa] transition-colors duration-200"
+                    >
+                      <FiGithub className="size-4" />
+                      Source
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* Right — thumbnail */}
+              <div className="order-1 lg:order-2 overflow-hidden" style={{ borderRadius: "2px" }}>
+                {project.thumbnail?.url ? (
+                  <div className="relative h-56 lg:h-64 overflow-hidden">
                     <Image
                       src={project.thumbnail.url}
                       alt={project.title}
                       fill
                       unoptimized
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="object-cover opacity-80 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
                     />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center">
-                      <span className="text-white/20 text-4xl font-black">
-                        {project.title.slice(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-
-                  {project.featured && (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/90 text-white backdrop-blur-sm">
-                      Featured
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 flex flex-col mt-6">
-                  <h3 className="text-xl lg:text-2xl font-semibold text-white mb-3 line-clamp-2">
-                    {project.title}
-                  </h3>
-                  <p className="text-white/70 mb-6 leading-relaxed text-sm lg:text-base line-clamp-3 flex-1">
-                    {project.description}
-                  </p>
-
-                  {project.company && (
-                    <p className="text-emerald-400/90 text-sm font-medium mb-4">
-                      {project.company}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {project.techStack.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs lg:text-sm font-medium text-white/90 backdrop-blur-sm hover:bg-white/15 hover:border-white/40 transition-all duration-300">
-                        {tag}
-                      </span>
-                    ))}
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    {project.liveUrl && (
-                      <Link
-                        href={project.liveUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group/btn flex-1 lg:flex-none">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full lg:w-fit flex items-center gap-2 justify-center whitespace-nowrap rounded-full text-sm font-semibold border border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:border-white/50 px-6 py-3 transition-all duration-300 text-white shadow-lg">
-                          Preview
-                          <FiExternalLink className="size-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
-                        </motion.button>
-                      </Link>
-                    )}
-
-                    {project.githubUrl && (
-                      <Link
-                        href={project.githubUrl}
-                        target="_blank"
-                        rel="noopener noreferrer">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex items-center gap-2 px-4 py-3 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-sm transition-all duration-300"
-                          title="View source">
-                          <FiGithub className="size-4" />
-                        </motion.button>
-                      </Link>
-                    )}
+                ) : (
+                  <div
+                    className="h-56 lg:h-64 border border-white/8 bg-white/[0.03] flex items-center justify-center"
+                  >
+                    <span className="text-[42px] font-bold text-[#222] tracking-[-0.03em]">
+                      {project.title.slice(0, 2).toUpperCase()}
+                    </span>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-      </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
+      {/* View more */}
       {!loading && !error && projects.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="mt-16 flex justify-center">
-          <Link href="/projects" className="group">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-2 justify-center whitespace-nowrap rounded-full text-sm font-semibold border border-white/30 bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-white/50 px-8 py-4 transition-all duration-300 text-white shadow-xl hover:shadow-emerald-500/30">
-              View More Projects
-              <svg
-                className="size-4 group-hover:translate-x-1 transition-transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 8l4 4m0 0l-4 4m4-4H3"
-                />
-              </svg>
-            </motion.button>
+          className="mt-16"
+        >
+          <Link
+            href="/projects"
+            className="inline-flex items-center gap-3 px-6 py-3 border border-white/25 hover:border-white/60 text-[13px] text-[#999] hover:text-white transition-all duration-200 group/more"
+            style={{ borderRadius: "2px" }}
+          >
+            View all projects
+            <svg
+              className="size-4 group-hover/more:translate-x-1 transition-transform duration-200"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
           </Link>
         </motion.div>
       )}

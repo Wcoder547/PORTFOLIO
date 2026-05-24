@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import {
   FiArrowLeft,
   FiCalendar,
   FiClock,
-  FiChevronRight,
   FiSearch,
   FiArrowRight,
+  FiX,
 } from "react-icons/fi";
 import { Article } from "@/lib/articles-data";
 
@@ -32,173 +32,204 @@ export default function ArticlesListClient({ articles, categories }: Props) {
     return matchesCategory && matchesSearch;
   });
 
-  return (
-    <main className="min-h-screen py-16 px-6 md:px-12 lg:px-16">
-      <div className="max-w-7xl mx-auto">
-        <motion.nav
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center space-x-2 text-sm text-white/60 mb-8"
-          aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-emerald-400 transition-colors">
-            Home
-          </Link>
-          <FiChevronRight className="size-4" />
-          <span className="text-white font-medium">Articles</span>
-        </motion.nav>
+  const hasFilters = selectedCategory !== "All" || searchQuery.trim() !== "";
 
+  return (
+    <main className="min-h-screen py-16 px-6 lg:px-16">
+      <div className="max-w-6xl mx-auto">
+
+        {/* Back link */}
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8">
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-14"
+        >
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-105">
-            <FiArrowLeft className="size-4" />
-            Back to Home
+            className="inline-flex items-center gap-2 text-[13px] text-[#555] hover:text-white transition-colors duration-200 group"
+          >
+            <FiArrowLeft className="size-4 group-hover:-translate-x-0.5 transition-transform duration-200" strokeWidth={1.5} />
+            Back to home
           </Link>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-12 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-white to-emerald-300 bg-clip-text text-transparent drop-shadow-2xl mb-6">
-            Articles & Insights
-          </h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto">
-            In-depth tutorials, best practices, and insights on modern web
-            development, AI, and tech trends
-          </p>
-          <div className="h-px mx-auto w-24 lg:w-32 bg-gradient-to-r from-emerald-400 via-white/60 to-transparent mt-6" />
-        </motion.div>
-
+        {/* Page header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-8 max-w-2xl mx-auto">
-          <div className="relative">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/40" />
+          transition={{ delay: 0.08 }}
+          className="mb-16"
+        >
+          <div className="flex items-end justify-between pb-5 border-b border-white/10">
+            <h1 className="text-[clamp(48px,7vw,88px)] font-bold text-white leading-none tracking-[-0.03em]">
+              Articles
+            </h1>
+            <span className="text-[11px] tracking-[0.25em] uppercase text-[#555] mb-2 font-mono">
+              {filteredArticles.length} {filteredArticles.length === 1 ? "piece" : "pieces"}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Search + filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.14 }}
+          className="mb-12 space-y-6"
+        >
+          {/* Search */}
+          <div className="relative max-w-md">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#444]" strokeWidth={1.5} />
             <input
               type="text"
               placeholder="Search articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
+              className="w-full pl-11 pr-10 py-3 bg-white/[0.04] border border-white/10 text-white text-[13px] placeholder-[#444] focus:outline-none focus:border-white/30 transition-colors duration-150"
+              style={{ borderRadius: "2px" }}
             />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-12">
-          <div className="flex flex-wrap justify-center gap-3">
-            {categories.map((category) => (
+            {searchQuery && (
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all ${
-                  selectedCategory === category
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50"
-                    : "bg-white/5 border border-white/20 text-white/80 hover:bg-white/10"
-                }`}>
-                {category}
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+              >
+                <FiX className="size-4" strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+
+          {/* Category filters */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-[11px] tracking-[0.1em] uppercase px-3 py-[7px] border transition-all duration-150 ${
+                  selectedCategory === cat
+                    ? "border-white/40 text-white bg-white/8"
+                    : "border-white/8 text-[#555] hover:text-[#999] hover:border-white/18"
+                }`}
+                style={{ borderRadius: "2px" }}
+              >
+                {cat}
               </button>
             ))}
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mb-8 text-center text-white/60 text-sm">
-          Showing {filteredArticles.length} article
-          {filteredArticles.length !== 1 ? "s" : ""}
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredArticles.map((article, index) => (
-            <motion.article
-              key={article.slug}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + index * 0.1 }}
-              className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-400/50 hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-300">
-              <Link href={`/articles/${article.slug}`}>
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={article.image.url}
-                    alt={article.title}
-                    fill
-                    unoptimized
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-semibold">
-                    {article.category}
-                  </div>
-                  {article.featured && (
-                    <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold">
-                      Featured
+        {/* Article list */}
+        <AnimatePresence mode="wait">
+          {filteredArticles.length > 0 ? (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-0"
+            >
+              {filteredArticles.map((article, index) => (
+                <motion.article
+                  key={article.slug}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.06 }}
+                  className="group grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 lg:gap-16 py-12 border-b border-white/8 items-start"
+                >
+                  {/* Left — text */}
+                  <div className="space-y-4 order-2 lg:order-1">
+                    {/* Index + category + featured */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-[12px] text-[#444] font-mono tracking-widest">
+                        _{String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span
+                        className="text-[10px] tracking-[0.12em] uppercase px-2.5 py-1 border border-white/10 text-[#666]"
+                        style={{ borderRadius: "2px" }}
+                      >
+                        {article.category}
+                      </span>
+                      {article.featured && (
+                        <span
+                          className="text-[10px] tracking-[0.12em] uppercase px-2.5 py-1 border border-white/15 text-[#888]"
+                          style={{ borderRadius: "2px" }}
+                        >
+                          Featured
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </Link>
 
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-4 text-xs text-white/60">
-                  <span className="flex items-center gap-1">
-                    <FiCalendar className="size-3" /> {article.date}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FiClock className="size-3" /> {article.readTime}
-                  </span>
-                </div>
+                    {/* Title */}
+                    <Link href={`/articles/${article.slug}`}>
+                      <h2 className="text-[20px] lg:text-[24px] font-semibold text-white tracking-[-0.02em] leading-snug hover:text-[#ccc] transition-colors duration-150">
+                        {article.title}
+                      </h2>
+                    </Link>
 
-                <Link href={`/articles/${article.slug}`}>
-                  <h3 className="text-xl font-semibold text-white group-hover:text-emerald-400 transition-colors line-clamp-2">
-                    {article.title}
-                  </h3>
-                </Link>
+                    {/* Excerpt */}
+                    <p className="text-[14px] text-[#777] leading-[1.85] font-light max-w-lg line-clamp-3">
+                      {article.excerpt}
+                    </p>
 
-                <p className="text-white/70 text-sm leading-relaxed line-clamp-3">
-                  {article.excerpt}
-                </p>
+                    {/* Meta + read link */}
+                    <div className="flex items-center gap-5 pt-1 flex-wrap">
+                      <span className="flex items-center gap-1.5 text-[12px] text-[#444] font-mono">
+                        <FiCalendar className="size-3" strokeWidth={1.5} />
+                        {article.date}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[12px] text-[#444] font-mono">
+                        <FiClock className="size-3" strokeWidth={1.5} />
+                        {article.readTime}
+                      </span>
+                      <Link
+                        href={`/articles/${article.slug}`}
+                        className="lg:ml-auto flex items-center gap-1.5 text-[13px] text-[#666] hover:text-white transition-colors duration-200 group/link"
+                      >
+                        Read article
+                        <FiArrowRight className="size-3.5 group-hover/link:translate-x-0.5 transition-transform duration-200" strokeWidth={1.5} />
+                      </Link>
+                    </div>
+                  </div>
 
-                <Link
-                  href={`/articles/${article.slug}`}
-                  className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors group/link">
-                  Read More
-                  <FiArrowRight className="size-4 group-hover/link:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </motion.article>
-          ))}
-        </div>
+                  {/* Right — thumbnail */}
+                  <Link
+                    href={`/articles/${article.slug}`}
+                    className="order-1 lg:order-2 block overflow-hidden"
+                    style={{ borderRadius: "2px" }}
+                  >
+                    <div className="relative h-48 lg:h-52 overflow-hidden">
+                      <Image
+                        src={article.image.url}
+                        alt={article.title}
+                        fill
+                        unoptimized
+                        className="object-cover opacity-75 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
+                      />
+                    </div>
+                  </Link>
+                </motion.article>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="py-24 text-center space-y-4"
+            >
+              <p className="text-[#444] text-[15px]">No articles match your filters.</p>
+              {hasFilters && (
+                <button
+                  onClick={() => { setSelectedCategory("All"); setSearchQuery(""); }}
+                  className="text-[13px] text-[#555] hover:text-white transition-colors duration-150 underline underline-offset-4"
+                >
+                  Clear filters
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {filteredArticles.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-20">
-            <p className="text-white/60 text-lg">
-              No articles found matching your criteria.
-            </p>
-            <button
-              onClick={() => {
-                setSelectedCategory("All");
-                setSearchQuery("");
-              }}
-              className="mt-4 text-emerald-400 hover:text-emerald-300 font-medium">
-              Clear filters
-            </button>
-          </motion.div>
-        )}
       </div>
     </main>
   );

@@ -1,15 +1,7 @@
 "use client";
-
 import { motion } from "framer-motion";
 import { useState } from "react";
-import {
-  FiArrowRight,
-  FiChevronDown,
-  FiMail,
-  FiSend,
-  FiCheckCircle,
-  FiAlertCircle,
-} from "react-icons/fi";
+import { FiArrowRight, FiChevronDown, FiSend, FiCheckCircle, FiAlertCircle, FiMail, FiMapPin, FiCircle } from "react-icons/fi";
 
 const currencies = [
   { code: "USD", symbol: "$", flag: "🇺🇸", name: "US Dollar" },
@@ -20,9 +12,12 @@ const currencies = [
 
 type Status = "idle" | "sending" | "success" | "error";
 
+const inputClass = `w-full px-4 py-3 bg-transparent border border-white/12 text-white text-[14px] placeholder:text-[#333]
+  focus:outline-none focus:border-white/35 transition-colors duration-200 font-light`;
+
 export function Contact() {
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -30,7 +25,6 @@ export function Contact() {
     e.preventDefault();
     setStatus("sending");
     setErrorMsg("");
-
     const formData = new FormData(e.currentTarget);
     const payload = {
       name: formData.get("name") as string,
@@ -40,7 +34,6 @@ export function Contact() {
       timeline: formData.get("timeline") as string,
       currency: selectedCurrency.code,
     };
-
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -48,9 +41,7 @@ export function Contact() {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-
       if (!res.ok) throw new Error(json.message || "Failed to send");
-
       setStatus("success");
       (e.target as HTMLFormElement).reset();
       setTimeout(() => setStatus("idle"), 5000);
@@ -61,228 +52,227 @@ export function Contact() {
   };
 
   return (
-    <section
-      id="contact"
-      className="py-24 px-6 md:px-12 lg:px-16 max-w-7xl mx-auto">
-      <div className="mx-auto flex max-w-2xl flex-col items-center">
+    <section id="contact" className="py-28 px-6 lg:px-16 max-w-6xl mx-auto">
+
+      {/* Section header */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mb-20"
+      >
+        <div className="pb-5 border-b border-white/10">
+          <h2 className="text-[clamp(48px,7vw,88px)] font-bold text-white leading-none tracking-[-0.03em]">
+            Contact
+          </h2>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-16 lg:gap-24 items-start">
+
+        {/* Left — info */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-12 text-center">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-white to-emerald-300 bg-clip-text text-transparent drop-shadow-2xl mb-4">
-            Get In Touch
-          </h2>
-          <p className="text-white/70 text-sm md:text-base mt-4">
-            Please contact me directly at{" "}
+          className="space-y-8"
+        >
+          <p className="text-[24px] lg:text-[28px] text-[#bbb] font-light leading-[1.7] tracking-[-0.01em]">
+            Open to full-time, freelance, and contract —{" "}
+            <span className="text-white">US, UK, and worldwide.</span>
+          </p>
+
+          <p className="text-[16px] text-[#666] leading-[1.85] font-light max-w-sm">
+            I work with product teams and founders who need production-ready
+            code and clear communication.
+          </p>
+
+          <div className="space-y-4 pt-2">
             <a
               href="mailto:malikwaseemshzad@gmail.com"
-              className="inline-flex items-center text-emerald-400 hover:text-emerald-300 underline underline-offset-4 font-medium transition-colors">
-              <FiMail className="mr-1.5 size-4" />
-              malikwaseemshzad@gmail.com
+              className="flex items-center gap-4 text-[15px] text-[#777] hover:text-white transition-colors duration-200 group/mail"
+            >
+              <FiMail className="size-[18px] text-[#444] shrink-0" />
+              <span className="group-hover/mail:underline underline-offset-4">malikwaseemshzad@gmail.com</span>
             </a>
-            or through this form.
-          </p>
-          <div className="h-px mx-auto w-24 lg:w-32 bg-gradient-to-r from-emerald-400 via-white/60 to-transparent mt-6" />
+            <div className="flex items-center gap-4 text-[15px] text-[#666]">
+              <FiMapPin className="size-[18px] text-[#444] shrink-0" />
+              <span>Sargodha, Pakistan</span>
+            </div>
+            <div className="flex items-center gap-4 text-[15px] text-[#666]">
+              <FiCircle className="size-[18px] text-[#444] shrink-0 fill-white/40" />
+              <span>Available for work</span>
+            </div>
+          </div>
         </motion.div>
 
+        {/* Right — form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="mb-8 space-y-3 text-center">
-          <p className="text-white/60 text-sm leading-relaxed">
-            Open to full-time, freelance, and contract - US, UK, and worldwide.
-          </p>
-          <p className="text-white/60 text-sm leading-relaxed max-w-xl">
-            I work with product teams and founders who need production-ready
-            code and clear communication.
-          </p>
-        </motion.div>
-
-        {/* Success Banner */}
-        {status === "success" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full mb-6 flex items-center gap-3 px-5 py-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
-            <FiCheckCircle className="size-5 shrink-0" />
-            <p className="text-sm font-medium">
-              Message sent! I&apos;ll get back to you within 24 hours.
-            </p>
-          </motion.div>
-        )}
-
-        {status === "error" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full mb-6 flex items-center gap-3 px-5 py-4 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300">
-            <FiAlertCircle className="size-5 shrink-0" />
-            <p className="text-sm font-medium">
+        >
+          {/* Feedback banners */}
+          {status === "success" && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 px-4 py-3 border border-white/15 text-[#aaa] text-[13px] mb-6"
+              style={{ borderRadius: "2px" }}
+            >
+              <FiCheckCircle className="size-4 shrink-0 text-white" />
+              Message sent — I&apos;ll reply within 24 hours.
+            </motion.div>
+          )}
+          {status === "error" && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 px-4 py-3 border border-white/10 text-[#888] text-[13px] mb-6"
+              style={{ borderRadius: "2px" }}
+            >
+              <FiAlertCircle className="size-4 shrink-0" />
               {errorMsg || "Failed to send. Please try again."}
-            </p>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
-        <motion.form
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          onSubmit={handleSubmit}
-          className="w-full space-y-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8">
-          {/* Name */}
-          <div>
-            <label
-              htmlFor="contact-name"
-              className="text-sm font-medium text-white mb-2 block">
-              Your name <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              id="contact-name"
-              name="name"
-              placeholder="Full name"
-              required
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Email */}
-          <div>
-            <label
-              htmlFor="contact-email"
-              className="text-sm font-medium text-white mb-2 block">
-              Email <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="email"
-              id="contact-email"
-              name="email"
-              placeholder="you@company.com"
-              required
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
-            />
-          </div>
-
-          {/* Message */}
-          <div>
-            <label
-              htmlFor="contact-message"
-              className="text-sm font-medium text-white mb-2 block">
-              Project details <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              id="contact-message"
-              name="message"
-              required
-              rows={6}
-              placeholder="Goal, timeline, scope, and how you'll measure success."
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all resize-y min-h-[8rem]"
-            />
-          </div>
-
-          {/* Budget */}
-          <div>
-            <label
-              htmlFor="contact-budget"
-              className="text-sm font-medium text-white mb-2 block">
-              Estimated budget (helps align expectations)
-            </label>
-            <div className="flex items-stretch rounded-lg border border-white/20 bg-white/5 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-400">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className="h-full px-4 bg-white/10 hover:bg-white/15 transition-colors flex items-center gap-2 min-w-[8rem] border-r border-white/20">
-                  <span className="text-lg">{selectedCurrency.flag}</span>
-                  <span className="font-medium text-white text-sm">
-                    {selectedCurrency.code}
-                  </span>
-                  <span className="text-white/60 text-xs">
-                    ({selectedCurrency.symbol})
-                  </span>
-                  <FiChevronDown
-                    className={`size-4 text-white/60 transition-transform ${showCurrencyDropdown ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {showCurrencyDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-zinc-900 border border-white/20 rounded-lg shadow-2xl z-50">
-                    {currencies.map((c) => (
-                      <button
-                        key={c.code}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCurrency(c);
-                          setShowCurrencyDropdown(false);
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-white/10 flex items-center gap-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg">
-                        <span className="text-lg">{c.flag}</span>
-                        <span className="font-medium text-white">{c.code}</span>
-                        <span className="text-white/60 text-xs">
-                          ({c.symbol})
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Name */}
+            <div className="space-y-2">
+              <label className="text-[11px] tracking-[0.15em] uppercase text-[#555]">
+                Name <span className="text-[#444]">*</span>
+              </label>
               <input
-                type="number"
-                id="contact-budget"
-                name="budget"
-                min="0"
-                step="1"
-                placeholder="Amount (optional)"
-                className="flex-1 px-4 py-3 bg-transparent text-white placeholder:text-white/40 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                type="text"
+                name="name"
+                placeholder="Your full name"
+                required
+                className={inputClass}
+                style={{ borderRadius: "2px" }}
               />
             </div>
-          </div>
 
-          {/* Timeline */}
-          <div>
-            <label
-              htmlFor="contact-timeline"
-              className="text-sm font-medium text-white mb-2 block">
-              Timeline
-            </label>
-            <input
-              type="text"
-              id="contact-timeline"
-              name="timeline"
-              placeholder="e.g. ASAP, 2 weeks, 1 month, flexible"
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
-            />
-          </div>
+            {/* Email */}
+            <div className="space-y-2">
+              <label className="text-[11px] tracking-[0.15em] uppercase text-[#555]">
+                Email <span className="text-[#444]">*</span>
+              </label>
+              <input
+                type="email"
+                name="email"
+                placeholder="you@company.com"
+                required
+                className={inputClass}
+                style={{ borderRadius: "2px" }}
+              />
+            </div>
 
-          {/* Submit */}
-          <div className="flex flex-col items-center gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={status === "sending" || status === "success"}
-              className="group flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold rounded-full shadow-lg hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-              {status === "sending" ? (
-                <>
-                  <FiSend className="size-4 animate-pulse" /> Sending...
-                </>
-              ) : status === "success" ? (
-                <>
-                  <FiCheckCircle className="size-4" /> Sent!
-                </>
-              ) : (
-                <>
-                  Send project details
-                  <FiArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-            <p className="text-white/50 text-xs text-center">
-              No spam. Your details stay private.
-            </p>
-          </div>
-        </motion.form>
+            {/* Message */}
+            <div className="space-y-2">
+              <label className="text-[11px] tracking-[0.15em] uppercase text-[#555]">
+                Project details <span className="text-[#444]">*</span>
+              </label>
+              <textarea
+                name="message"
+                required
+                rows={5}
+                placeholder="Goal, scope, timeline, and how you'll measure success."
+                className={`${inputClass} resize-y min-h-[120px]`}
+                style={{ borderRadius: "2px" }}
+              />
+            </div>
+
+            {/* Budget */}
+            <div className="space-y-2">
+              <label className="text-[11px] tracking-[0.15em] uppercase text-[#555]">
+                Estimated budget
+              </label>
+              <div
+                className="flex border border-white/12 overflow-hidden focus-within:border-white/35 transition-colors duration-200"
+                style={{ borderRadius: "2px" }}
+              >
+                {/* Currency selector */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="h-full px-4 bg-white/[0.04] hover:bg-white/[0.07] border-r border-white/10 flex items-center gap-2 transition-colors duration-200 min-w-[96px]"
+                  >
+                    <span className="text-base">{selectedCurrency.flag}</span>
+                    <span className="text-[13px] text-[#888]">{selectedCurrency.code}</span>
+                    <FiChevronDown className={`size-3 text-[#555] transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+                  </button>
+                  {showDropdown && (
+                    <div
+                      className="absolute top-full left-0 mt-1 w-44 bg-[#111] border border-white/12 shadow-xl z-50"
+                      style={{ borderRadius: "2px" }}
+                    >
+                      {currencies.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => { setSelectedCurrency(c); setShowDropdown(false); }}
+                          className="w-full px-4 py-2.5 text-left hover:bg-white/5 flex items-center gap-2.5 text-[13px] transition-colors"
+                        >
+                          <span>{c.flag}</span>
+                          <span className="text-[#888]">{c.code}</span>
+                          <span className="text-[#444] text-[11px]">{c.symbol}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  name="budget"
+                  min="0"
+                  placeholder="Amount (optional)"
+                  className="flex-1 px-4 py-3 bg-transparent text-white text-[14px] placeholder:text-[#333] focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="space-y-2">
+              <label className="text-[11px] tracking-[0.15em] uppercase text-[#555]">
+                Timeline
+              </label>
+              <input
+                type="text"
+                name="timeline"
+                placeholder="e.g. ASAP, 2 weeks, flexible"
+                className={inputClass}
+                style={{ borderRadius: "2px" }}
+              />
+            </div>
+
+            {/* Submit */}
+            <div className="pt-3">
+              <button
+                type="submit"
+                disabled={status === "sending" || status === "success"}
+                className="inline-flex items-center gap-3 px-6 py-3 border border-white/25 hover:border-white/60 text-[13px] text-[#999] hover:text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group/btn"
+                style={{ borderRadius: "2px" }}
+              >
+                {status === "sending" ? (
+                  <><FiSend className="size-4 animate-pulse" /> Sending...</>
+                ) : status === "success" ? (
+                  <><FiCheckCircle className="size-4" /> Sent!</>
+                ) : (
+                  <>
+                    Send message
+                    <FiArrowRight className="size-4 group-hover/btn:translate-x-1 transition-transform duration-200" />
+                  </>
+                )}
+              </button>
+              <p className="text-[11px] text-[#333] mt-3 tracking-wide">
+                No spam. Your details stay private.
+              </p>
+            </div>
+          </form>
+        </motion.div>
       </div>
     </section>
   );
