@@ -12,7 +12,6 @@ import {
 } from "react-icons/fi";
 import { Toaster, toast } from "sonner";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Message {
   id: string;
   content: string;
@@ -21,47 +20,27 @@ interface Message {
   status?: "pending" | "complete" | "error";
 }
 
-interface AnalyticsEvent {
-  event: "chat_open" | "chat_close" | "message_sent" | "message_received" | "error";
-  userId?: string;
-  sessionId: string;
-  timestamp: number;
-  messageCount?: number;
-}
-
 const INITIAL_MESSAGE: Message = {
   id: "welcome-1",
-  content: `Hello. I'm here to help you learn about Waseem Akram — his skills, projects, experience, and professional background.
+  content: `Hey — I'm Waseem's assistant.
 
-**For Recruiters:** Paste a job description or role requirements and I'll provide a detailed match analysis.
-
-**For Visitors:** Ask me about Waseem's technical skills, notable projects, work experience, or anything else. How can I assist you?`,
+Ask me anything about his work, skills, or availability. If you're a recruiter, drop a job description and I'll tell you how he fits.`,
   sender: "bot",
   timestamp: new Date(),
 };
 
-// ─── Chatbot Component ────────────────────────────────────────────────────────
 export function Chatbot({ userId }: { userId?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [] = useTransition();
   const [sessionId] = useState(() => crypto.randomUUID());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // ─── Analytics ──────────────────────────────────────────────────────────────
-  const trackEvent = useCallback((event: AnalyticsEvent) => {
-    console.log("[Chat Analytics]", event);
-    const events = JSON.parse(localStorage.getItem("chat-events") || "[]") as AnalyticsEvent[];
-    events.push(event);
-    localStorage.setItem("chat-events", JSON.stringify(events.slice(-100)));
-  }, []);
-
-  // ─── Scroll & Focus ─────────────────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
@@ -69,17 +48,11 @@ export function Chatbot({ userId }: { userId?: string }) {
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   useEffect(() => {
-    if (isOpen) {
-      trackEvent({ event: "chat_open", sessionId, userId, timestamp: Date.now() });
-      setTimeout(() => inputRef.current?.focus(), 300);
-    } else {
-      trackEvent({ event: "chat_close", sessionId, userId, timestamp: Date.now() });
-    }
-  }, [isOpen, trackEvent, sessionId, userId]);
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 300);
+  }, [isOpen]);
 
-  // ─── Send Message ────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isStreaming || isPending) return;
+    if (!text.trim() || isStreaming) return;
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -90,34 +63,37 @@ export function Chatbot({ userId }: { userId?: string }) {
 
     setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
-    trackEvent({ event: "message_sent", sessionId, userId, timestamp: Date.now(), messageCount: messages.length + 1 });
-
     setIsStreaming(true);
 
     const botId = crypto.randomUUID();
-    setMessages((prev) => [...prev, { id: botId, content: "", sender: "bot", timestamp: new Date(), status: "pending" }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: botId, content: "", sender: "bot", timestamp: new Date(), status: "pending" },
+    ]);
 
     abortControllerRef.current = new AbortController();
 
     try {
       const history = messages
-        .filter((m) => m.id !== "welcome-1")
-        .filter((m) => m.status !== "error")
-        .filter((m) => m.content.trim().length > 0)
+        .filter((m) => m.id !== "welcome-1" && m.status !== "error" && m.content.trim())
         .concat(userMsg)
         .map((m) => ({ role: m.sender === "user" ? "user" : ("assistant" as const), content: m.content }));
 
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Session-ID": sessionId, "X-User-ID": userId || "" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-ID": sessionId,
+          "X-User-ID": userId || "",
+        },
         body: JSON.stringify({ messages: history }),
         signal: abortControllerRef.current.signal,
         cache: "no-store",
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${response.status}`);
       }
       if (!response.body) throw new Error("No response body");
 
@@ -129,50 +105,57 @@ export function Chatbot({ userId }: { userId?: string }) {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, content: accumulated } : m));
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botId ? { ...m, content: accumulated } : m))
+        );
       }
 
-      setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, status: "complete" } : m));
-      trackEvent({ event: "message_received", sessionId, userId, timestamp: Date.now(), messageCount: messages.length + 2 });
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botId ? { ...m, status: "complete" } : m))
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        toast("Message cancelled", { duration: 2000 });
+        toast("Cancelled", { duration: 1500 });
         return;
       }
-      const errorMsg = error instanceof Error ? error.message : "Connection failed";
-      setMessages((prev) => prev.map((m) =>
-        m.id === botId ? { ...m, content: `Something went wrong: ${errorMsg}. Please try again.`, status: "error" } : m
-      ));
-      trackEvent({ event: "error", sessionId, userId, timestamp: Date.now() });
-      toast.error("Failed to send message.", { duration: 4000 });
+      const msg = error instanceof Error ? error.message : "Connection failed";
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botId
+            ? { ...m, content: `Something went wrong — ${msg}. Try again.`, status: "error" }
+            : m
+        )
+      );
+      toast.error("Failed to send.", { duration: 3000 });
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;
     }
-  }, [isStreaming, isPending, messages, sessionId, userId, trackEvent]);
+  }, [isStreaming, messages, sessionId, userId]);
 
-  // ─── Controls ────────────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
     abortControllerRef.current?.abort();
     setMessages([INITIAL_MESSAGE]);
     setInputValue("");
     setIsStreaming(false);
-    toast.success("Conversation cleared", { duration: 2000 });
+    toast.success("Cleared", { duration: 1500 });
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(inputValue); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(inputValue);
+    }
   };
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-  // ─── Markdown Renderer ───────────────────────────────────────────────────────
   const formatMessage = useCallback((content: string) => {
-    return content.split("\n").map((line, i) => {
+    return content.split("\n").map((line, i, arr) => {
       const parts = line.split(/\*\*(.*?)\*\*/g);
       return (
-        <div key={i} className={i < content.split("\n").length - 1 ? "mb-1.5" : ""}>
+        <div key={i} className={i < arr.length - 1 ? "mb-1.5" : ""}>
           {parts.map((part, j) =>
             j % 2 === 1
               ? <strong key={j} className="font-semibold text-white">{part}</strong>
@@ -183,16 +166,16 @@ export function Chatbot({ userId }: { userId?: string }) {
     });
   }, []);
 
-  const msgCount = messages.filter(m => m.id !== "welcome-1").length;
+  const msgCount = messages.filter((m) => m.id !== "welcome-1").length;
 
   return (
     <>
       <Toaster position="top-right" richColors closeButton expand={false} duration={3000} />
 
-      {/* FAB Button — sharp square, editorial */}
+      {/* FAB */}
       <motion.button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="fixed bottom-6 right-6 z-[9999] size-14 flex items-center justify-center bg-white text-black border border-white/20 shadow-2xl transition-all duration-200 hover:bg-white/90"
+        className="fixed bottom-6 right-6 z-[9999] size-14 flex items-center justify-center bg-white text-black shadow-2xl hover:bg-white/90 transition-colors"
         style={{ borderRadius: "2px" }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -209,7 +192,6 @@ export function Chatbot({ userId }: { userId?: string }) {
             </motion.div>
           )}
         </AnimatePresence>
-        {/* Unread dot */}
         {!isOpen && msgCount === 0 && (
           <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-white border-2 border-black" />
         )}
@@ -231,11 +213,10 @@ export function Chatbot({ userId }: { userId?: string }) {
               boxShadow: "0 32px 64px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)",
             }}
           >
-            {/* ── Header ─────────────────────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 flex-shrink-0">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] flex-shrink-0">
               <div className="flex items-center gap-3">
-                {/* Status dot */}
-                <div className="relative flex items-center justify-center size-8 border border-white/12 bg-white/[0.04]" style={{ borderRadius: "2px" }}>
+                <div className="relative flex items-center justify-center size-8 border border-white/[0.12] bg-white/[0.04]" style={{ borderRadius: "2px" }}>
                   <span className="text-[10px] font-mono text-[#888]">AI</span>
                   <motion.span
                     className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-white/70"
@@ -245,34 +226,24 @@ export function Chatbot({ userId }: { userId?: string }) {
                 </div>
                 <div>
                   <p className="text-[13px] font-semibold text-white tracking-[-0.01em] leading-none">
-                    Waseem's Assistant
+                    Waseem&apos;s Assistant
                   </p>
                   <p className="text-[11px] text-[#555] mt-0.5 font-mono">
-                    {isStreaming ? "writing..." : "online"}
+                    {isStreaming ? "typing..." : "online"}
                   </p>
                 </div>
               </div>
-
               <div className="flex items-center gap-1">
-                <button
-                  onClick={handleClear}
-                  title="Clear conversation"
-                  className="p-2 text-[#444] hover:text-[#999] transition-colors duration-150"
-                  aria-label="Clear conversation"
-                >
+                <button onClick={handleClear} title="Clear" className="p-2 text-[#444] hover:text-[#999] transition-colors">
                   <FiTrash2 className="size-3.5" strokeWidth={1.5} />
                 </button>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 text-[#444] hover:text-[#999] transition-colors duration-150"
-                  aria-label="Close chat"
-                >
+                <button onClick={() => setIsOpen(false)} className="p-2 text-[#444] hover:text-[#999] transition-colors">
                   <FiMinus className="size-4" strokeWidth={1.5} />
                 </button>
               </div>
             </div>
 
-            {/* ── Messages ───────────────────────────────────────────────────── */}
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               {messages.map((message, index) => (
                 <motion.div
@@ -282,7 +253,6 @@ export function Chatbot({ userId }: { userId?: string }) {
                   transition={{ duration: 0.18 }}
                   className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}
                 >
-                  {/* Sender label */}
                   <span className="text-[10px] text-[#444] font-mono tracking-[0.08em] uppercase mb-1.5 px-0.5">
                     {message.sender === "user" ? "You" : `_${String(index).padStart(2, "0")}`}
                   </span>
@@ -293,7 +263,7 @@ export function Chatbot({ userId }: { userId?: string }) {
                         ? "bg-white text-black"
                         : message.status === "error"
                         ? "bg-white/[0.03] border border-red-400/25 text-[#888]"
-                        : "bg-white/[0.05] border border-white/8 text-[#ccc]"
+                        : "bg-white/[0.05] border border-white/[0.08] text-[#ccc]"
                     }`}
                     style={{ borderRadius: "2px" }}
                   >
@@ -308,15 +278,13 @@ export function Chatbot({ userId }: { userId?: string }) {
                         {formatMessage(message.content)}
                         {message.status === "error" && (
                           <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[#666]">
-                            <FiAlertTriangle className="size-3" />
-                            Failed to send
+                            <FiAlertTriangle className="size-3" /> Failed
                           </div>
                         )}
                       </>
                     )}
                   </div>
 
-                  {/* Timestamp */}
                   {message.content && (
                     <span className="text-[10px] text-[#333] mt-1 px-0.5 font-mono">
                       {formatTime(message.timestamp)}
@@ -327,8 +295,8 @@ export function Chatbot({ userId }: { userId?: string }) {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Input ──────────────────────────────────────────────────────── */}
-            <div className="px-5 py-4 border-t border-white/8 flex-shrink-0">
+            {/* Input */}
+            <div className="px-5 py-4 border-t border-white/[0.08] flex-shrink-0">
               <div className="flex gap-2 items-center">
                 <input
                   ref={inputRef}
@@ -337,25 +305,23 @@ export function Chatbot({ userId }: { userId?: string }) {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about Waseem..."
-                  disabled={isStreaming || isPending}
-                  maxLength={2000}
-                  className="flex-1 px-4 py-2.5 bg-white/[0.04] border border-white/10 text-white text-[13px] placeholder-[#444] focus:outline-none focus:border-white/30 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={isStreaming}
+                  maxLength={1000}
+                  className="flex-1 px-4 py-2.5 bg-white/[0.04] border border-white/10 text-white text-[13px] placeholder-[#444] focus:outline-none focus:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ borderRadius: "2px" }}
-                  aria-label="Message input"
                 />
                 <motion.button
                   onClick={() => sendMessage(inputValue)}
-                  disabled={!inputValue.trim() || isStreaming || isPending}
+                  disabled={!inputValue.trim() || isStreaming}
                   whileTap={{ scale: 0.95 }}
-                  className="flex-shrink-0 size-[42px] flex items-center justify-center bg-white text-black disabled:opacity-25 disabled:cursor-not-allowed transition-opacity duration-150 hover:bg-white/90"
+                  className="flex-shrink-0 size-[42px] flex items-center justify-center bg-white text-black disabled:opacity-25 disabled:cursor-not-allowed hover:bg-white/90 transition-opacity"
                   style={{ borderRadius: "2px" }}
-                  aria-label="Send message"
                 >
                   <FiSend className="size-4" strokeWidth={1.5} />
                 </motion.button>
               </div>
               <p className="text-[10px] text-[#333] mt-2.5 tracking-[0.06em] text-center font-mono uppercase">
-                Messages not stored · Private
+                Not stored · Private
               </p>
             </div>
           </motion.div>
