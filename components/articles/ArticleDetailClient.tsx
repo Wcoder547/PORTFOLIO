@@ -1,24 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowLeft, FiTwitter, FiLinkedin, FiLink, FiClock, FiCalendar } from "react-icons/fi";
+import { FiArrowLeft, FiTwitter, FiLinkedin, FiLink } from "react-icons/fi";
 
-interface Article {
-  _id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  tags: string[];
-  image: { public_id: string; url: string };
-  featured: boolean;
-  published: boolean;
-  readTime: string;
-  author: { name: string; bio: string; avatar: string };
-  createdAt: string;
-}
+import type { Article } from "@/lib/articles-data";
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || "section";
@@ -56,9 +42,7 @@ export default function ArticleDetailClient({ article }: { article: Article }) {
       navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
-  const date = new Date(article.createdAt).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-  });
+  const date = article.date;
 
   return (
     <>
