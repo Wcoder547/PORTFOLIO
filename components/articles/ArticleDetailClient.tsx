@@ -1,346 +1,416 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
-
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
-import { Marked } from "marked";
-import {
-  FiArrowLeft,
-  FiCalendar,
-  FiClock,
-  FiTwitter,
-  FiLinkedin,
-  FiLink,
-  FiCheck,
-} from "react-icons/fi";
-import { Article, TocItem } from "@/lib/articles-data";
+import { FiArrowLeft, FiTwitter, FiLinkedin, FiLink, FiClock, FiCalendar } from "react-icons/fi";
 
-interface Props {
-  article: Article;
+interface Article {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  tags: string[];
+  image: { public_id: string; url: string };
+  featured: boolean;
+  published: boolean;
+  readTime: string;
+  author: { name: string; bio: string; avatar: string };
+  createdAt: string;
 }
 
-function extractToc(markdown: string): TocItem[] {
-  const lines = markdown.split("\n");
-  const toc: TocItem[] = [];
-  for (const line of lines) {
-    const match = line.match(/^(#{1,3})\s+(.+)/);
-    if (match) {
-      const level = match[1].length;
-      const title = match[2].trim().replace(/\*\*/g, "").replace(/`/g, "");
-      const id = title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-");
-      toc.push({ id, title, level });
-    }
-  }
-  return toc;
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || "section";
 }
 
-const markedInstance = new Marked({
-  async: false,
-  breaks: true,
-  gfm: true,
-  renderer: {
-    heading({ text, depth }) {
-      const id = text
-        .toLowerCase()
-        .replace(/\*\*/g, "")
-        .replace(/`/g, "")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-");
-      return `<h${depth} id="${id}">${text}</h${depth}>\n`;
-    },
-  },
-});
+async function renderMarkdown(content: string): Promise<string> {
+  const { marked } = await import("marked");
+  const renderer = new marked.Renderer();
+  const seen: Record<string, number> = {};
+  renderer.heading = function ({ text, depth }) {
+    const base = slugify(text);
+    seen[base] = (seen[base] ?? 0) + 1;
+    const id = seen[base] > 1 ? `${base}-${seen[base]}` : base;
+    return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+  };
+  marked.setOptions({ renderer });
+  return marked(content) as string;
+}
 
-export default function ArticleDetailClient({ article }: Props) {
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [htmlContent, setHtmlContent] = useState<string>("");
-
-  const tableOfContents = useMemo(() => extractToc(article.content), [article.content]);
+export default function ArticleDetailClient({ article }: { article: Article }) {
+  const [html, setHtml] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const result = markedInstance.parse(article.content) as string;
-    setHtmlContent(result);
+    renderMarkdown(article.content).then(setHtml);
   }, [article.content]);
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+  const share = (platform: "twitter" | "linkedin" | "copy") => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (platform === "twitter")
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(url)}`, "_blank");
+    else if (platform === "linkedin")
+      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, "_blank");
+    else
+      navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
-  const shareOnTwitter = () =>
-    window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(window.location.href)}`,
-      "_blank",
-    );
-
-  const shareOnLinkedIn = () =>
-    window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`,
-      "_blank",
-    );
+  const date = new Date(article.createdAt).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+  });
 
   return (
-    <main className="min-h-screen py-16 px-6 lg:px-16">
-      <div className="max-w-6xl mx-auto">
+    <>
+      <style>{`
+        /* ── Body text ─────────────────────────────────────────────── */
+        .prose {
+          color: rgba(255,255,255,0.75);
+          font-size: 20px;
+          line-height: 1.88;
+          font-family: charter, Georgia, Cambria, "Times New Roman", Times, serif;
+          font-weight: 400;
+          letter-spacing: -0.003em;
+        }
+        .prose p  { margin: 0 0 2em; }
+        .prose p:last-child { margin-bottom: 0; }
 
-        {/* Back link */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-14"
-        >
-          <Link
-            href="/articles"
-            className="inline-flex items-center gap-2 text-[13px] text-[#555] hover:text-white transition-colors duration-200 group"
+        /* ── Headings ──────────────────────────────────────────────── */
+        .prose h1 {
+          color: rgba(255,255,255,0.92);
+          font-size: 30px;
+          font-weight: 700;
+          font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
+          letter-spacing: -0.022em;
+          line-height: 1.18;
+          margin: 3.5em 0 0.5em;
+        }
+        .prose h2 {
+          color: rgba(255,255,255,0.88);
+          font-size: 24px;
+          font-weight: 700;
+          font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
+          letter-spacing: -0.018em;
+          line-height: 1.22;
+          margin: 3em 0 0.5em;
+        }
+        .prose h3 {
+          color: rgba(255,255,255,0.84);
+          font-size: 20px;
+          font-weight: 600;
+          font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
+          letter-spacing: -0.012em;
+          line-height: 1.28;
+          margin: 2.5em 0 0.4em;
+        }
+        .prose h4 {
+          color: rgba(255,255,255,0.8);
+          font-size: 18px;
+          font-weight: 600;
+          font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
+          margin: 2em 0 0.3em;
+        }
+        .prose h1:first-child,
+        .prose h2:first-child,
+        .prose h3:first-child { margin-top: 0; }
+
+        /* ── Inline ────────────────────────────────────────────────── */
+        .prose strong { color: rgba(255,255,255,0.9); font-weight: 700; }
+        .prose em     { font-style: italic; }
+        .prose a {
+          color: rgba(255,255,255,0.85) !important;
+          text-decoration: underline;
+          text-decoration-color: rgba(255,255,255,0.25);
+          text-underline-offset: 3px;
+        }
+        .prose a:hover {
+          text-decoration-color: rgba(255,255,255,0.6);
+        }
+
+        /* ── Code ──────────────────────────────────────────────────── */
+        .prose code {
+          font-family: "Menlo", "Monaco", "Courier New", monospace;
+          font-size: 15px;
+          background: rgba(255,255,255,0.07);
+          color: rgba(255,255,255,0.85);
+          padding: 2px 6px;
+          border-radius: 3px;
+        }
+        .prose pre {
+          background: #1a1a1a;
+          border-radius: 4px;
+          padding: 1.25em 1.5em;
+          overflow-x: auto;
+          margin: 2em 0;
+        }
+        .prose pre code {
+          background: transparent;
+          padding: 0;
+          font-size: 14px;
+          color: rgba(255,255,255,0.8);
+          line-height: 1.75;
+        }
+
+        /* ── Lists ─────────────────────────────────────────────────── */
+        .prose ul,
+        .prose ol { margin: 0 0 2em; padding-left: 2em; }
+        .prose ul  { list-style: disc; }
+        .prose ol  { list-style: decimal; }
+        .prose li  { margin-bottom: 0.4em; font-size: 20px; }
+        .prose li::marker { color: rgba(255,255,255,0.35); }
+
+        /* ── Blockquote ────────────────────────────────────────────── */
+        .prose blockquote {
+          border-left: 3px solid rgba(255,255,255,0.15);
+          margin: 2em 0;
+          padding: 0 0 0 1.5em;
+          font-style: italic;
+          color: rgba(255,255,255,0.55);
+          font-size: 21px;
+        }
+        .prose blockquote p { color: inherit; }
+
+        /* ── HR ────────────────────────────────────────────────────── */
+        .prose hr {
+          border: none;
+          text-align: center;
+          margin: 3em 0;
+          letter-spacing: 0.6em;
+          color: rgba(255,255,255,0.25);
+        }
+        .prose hr::before { content: "···"; }
+
+        /* ── Image ─────────────────────────────────────────────────── */
+        .prose img {
+          width: 100%;
+          border-radius: 4px;
+          margin: 2em 0;
+        }
+
+        /* ── Table ─────────────────────────────────────────────────── */
+        .prose table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 16px;
+          margin: 2em 0;
+          font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+        .prose th {
+          text-align: left;
+          font-weight: 600;
+          color: rgba(255,255,255,0.7);
+          border-bottom: 1px solid rgba(255,255,255,0.12);
+          padding: 8px 12px;
+          font-size: 14px;
+          letter-spacing: 0.02em;
+        }
+        .prose td {
+          padding: 10px 12px;
+          color: rgba(255,255,255,0.55);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .prose tr:last-child td { border-bottom: none; }
+      `}</style>
+
+      <main className="min-h-screen bg-[#121212]">
+        {/* ── Single centered column — exactly like Medium ─────────── */}
+        <div className="max-w-[728px] mx-auto px-6 pt-12 pb-24">
+
+          {/* Back */}
+          <div className="mb-10">
+            <Link
+              href="/articles"
+              className="inline-flex items-center gap-1.5 text-[13px] text-[rgba(255,255,255,0.3)] hover:text-[rgba(255,255,255,0.6)] transition-colors"
+              style={{ fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif' }}
+            >
+              <FiArrowLeft className="size-3.5" /> All articles
+            </Link>
+          </div>
+
+          {/* ── Title ──────────────────────────────────────────────── */}
+          <h1
+            className="text-white mb-4"
+            style={{
+              fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif',
+              fontSize: "clamp(28px, 5vw, 42px)",
+              fontWeight: 700,
+              letterSpacing: "-0.025em",
+              lineHeight: 1.12,
+              color: "rgba(255,255,255,0.93)",
+            }}
           >
-            <FiArrowLeft className="size-4 group-hover:-translate-x-0.5 transition-transform duration-200" strokeWidth={1.5} />
-            Back to articles
-          </Link>
-        </motion.div>
+            {article.title}
+          </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-16 lg:gap-20">
-
-          {/* ── Main column ─────────────────────────────────────────────── */}
-          <div>
-            {/* Category + meta */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
-              className="flex items-center gap-3 mb-6 flex-wrap"
+          {/* ── Subtitle / excerpt ─────────────────────────────────── */}
+          {article.excerpt && (
+            <p
+              className="mb-8"
+              style={{
+                fontFamily: 'charter, Georgia, Cambria, "Times New Roman", Times, serif',
+                fontSize: "22px",
+                lineHeight: 1.58,
+                color: "rgba(255,255,255,0.4)",
+                fontWeight: 400,
+              }}
             >
-              <span
-                className="text-[11px] tracking-[0.12em] uppercase px-2.5 py-1 border border-white/12 text-[#777]"
-                style={{ borderRadius: "2px" }}
-              >
-                {article.category}
-              </span>
-              {article.featured && (
-                <span
-                  className="text-[11px] tracking-[0.12em] uppercase px-2.5 py-1 border border-white/15 text-[#888]"
-                  style={{ borderRadius: "2px" }}
-                >
-                  Featured
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 text-[12px] text-[#444] font-mono">
-                <FiCalendar className="size-3" strokeWidth={1.5} />
-                {article.date}
-              </span>
-              <span className="flex items-center gap-1.5 text-[12px] text-[#444] font-mono">
-                <FiClock className="size-3" strokeWidth={1.5} />
-                {article.readTime}
-              </span>
-            </motion.div>
+              {article.excerpt}
+            </p>
+          )}
 
-            {/* Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 }}
-              className="text-[clamp(28px,4.5vw,52px)] font-bold text-white leading-[1.1] tracking-[-0.025em] mb-8"
-            >
-              {article.title}
-            </motion.h1>
-
-            {/* Author */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.16 }}
-              className="flex items-center gap-4 mb-10 pb-10 border-b border-white/8"
-            >
-              {article.author.avatar ? (
-                <div className="relative size-10 overflow-hidden flex-shrink-0" style={{ borderRadius: "2px" }}>
-                  <Image
-                    src={article.author.avatar}
-                    alt={article.author.name}
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                </div>
+          {/* ── Author row — exactly Medium style ──────────────────── */}
+          <div className="flex items-center gap-3 mb-8 pb-8 border-b border-white/[0.08]">
+            {/* Avatar */}
+            <div className="relative w-10 h-10 flex-shrink-0 overflow-hidden rounded-full">
+              {article.author?.avatar ? (
+                <Image src={article.author.avatar} alt={article.author.name} fill unoptimized className="object-cover" />
               ) : (
                 <div
-                  className="size-10 flex items-center justify-center flex-shrink-0 border border-white/10 bg-white/[0.04] text-[15px] font-bold text-white"
-                  style={{ borderRadius: "2px" }}
+                  className="w-full h-full flex items-center justify-center text-[14px] font-semibold"
+                  style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
                 >
-                  {article.author.name.charAt(0)}
+                  {article.author?.name?.[0] ?? "W"}
                 </div>
               )}
-              <div>
-                <p className="text-[14px] font-medium text-white leading-none">{article.author.name}</p>
-                <p className="text-[12px] text-[#555] mt-1">{article.author.bio}</p>
-              </div>
-            </motion.div>
+            </div>
 
-            {/* Hero image */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="relative h-[360px] lg:h-[440px] overflow-hidden mb-12"
-              style={{ borderRadius: "2px" }}
-            >
+            <div className="flex-1 min-w-0">
+              {/* Name */}
+              <p
+                className="text-[15px] font-medium leading-none mb-1"
+                style={{
+                  fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif',
+                  color: "rgba(255,255,255,0.75)",
+                }}
+              >
+                {article.author?.name}
+              </p>
+              {/* Meta row */}
+              <p
+                className="text-[13px] flex items-center gap-1.5"
+                style={{ color: "rgba(255,255,255,0.3)", fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif' }}
+              >
+                <span>{date}</span>
+                <span>·</span>
+                <span>{article.readTime}</span>
+              </p>
+            </div>
+
+            {/* Share buttons — right side */}
+            <div className="flex items-center gap-4">
+              {[
+                { icon: FiTwitter, fn: () => share("twitter") },
+                { icon: FiLinkedin, fn: () => share("linkedin") },
+                { icon: FiLink, fn: () => share("copy") },
+              ].map(({ icon: Icon, fn }, i) => (
+                <button
+                  key={i}
+                  onClick={fn}
+                  className="transition-colors"
+                  style={{ color: "rgba(255,255,255,0.25)" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
+                >
+                  <Icon className="size-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Hero image — inside column, like Medium ─────────────── */}
+          {article.image?.url && (
+            <div className="w-full mb-10 overflow-hidden rounded-sm">
               <Image
                 src={article.image.url}
                 alt={article.title}
-                fill
+                width={728}
+                height={400}
                 unoptimized
-                className="object-cover"
+                priority
+                className="w-full object-cover"
+                style={{ maxHeight: "400px" }}
               />
-            </motion.div>
+            </div>
+          )}
 
-            {/* Article body */}
-            <motion.article
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.28 }}
-              className="prose prose-invert max-w-none
-                prose-p:text-[#999] prose-p:text-[16px] prose-p:leading-[1.9] prose-p:mb-6 prose-p:font-light
-                prose-headings:scroll-mt-24
-                prose-h1:text-white prose-h1:text-[28px] prose-h1:font-semibold prose-h1:tracking-[-0.02em] prose-h1:mt-14 prose-h1:mb-6
-                prose-h2:text-white prose-h2:text-[22px] prose-h2:font-semibold prose-h2:tracking-[-0.02em] prose-h2:mt-14 prose-h2:mb-5 prose-h2:pb-4 prose-h2:border-b prose-h2:border-white/8
-                prose-h3:text-white prose-h3:text-[18px] prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4
-                prose-a:text-white prose-a:underline prose-a:underline-offset-4 prose-a:decoration-white/25 hover:prose-a:decoration-white/60
-                prose-strong:text-white prose-strong:font-semibold
-                prose-em:text-[#888] prose-em:italic
-                prose-blockquote:border-l-2 prose-blockquote:border-white/20 prose-blockquote:text-[#666] prose-blockquote:pl-5 prose-blockquote:italic prose-blockquote:my-8
-                prose-code:text-[#bbb] prose-code:bg-white/[0.06] prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[14px] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
-                prose-pre:bg-white/[0.04] prose-pre:border prose-pre:border-white/8 prose-pre:p-6 prose-pre:text-[13px] prose-pre:leading-relaxed prose-pre:overflow-x-auto prose-pre:my-8
-                prose-ul:text-[#999] prose-ul:text-[15px] prose-ul:font-light prose-ul:space-y-2
-                prose-ol:text-[#999] prose-ol:text-[15px] prose-ol:font-light prose-ol:space-y-2
-                prose-li:mb-1.5
-                prose-img:border prose-img:border-white/8 prose-img:my-8
-                prose-hr:border-white/8 prose-hr:my-14
-                prose-table:text-[#999] prose-th:text-white prose-th:bg-white/[0.04] prose-th:font-medium
-                [&_pre]:!bg-white/[0.04] [&_pre]:!border [&_pre]:!border-white/8"
-              style={{ "--tw-prose-pre-bg": "transparent" } as React.CSSProperties}
-              dangerouslySetInnerHTML={{ __html: htmlContent }}
-            />
+          {/* ── Body ───────────────────────────────────────────────── */}
+          <div
+            className="prose"
+            dangerouslySetInnerHTML={{ __html: html || "" }}
+          />
 
-            {/* Tags */}
-            {article.tags.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.36 }}
-                className="mt-14 pt-10 border-t border-white/8"
-              >
-                <p className="text-[11px] tracking-[0.2em] uppercase text-[#444] mb-4">Tags</p>
-                <div className="flex flex-wrap gap-2">
-                  {article.tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="text-[11px] tracking-[0.07em] uppercase px-3 py-[6px] border border-white/8 text-[#666] hover:text-[#aaa] hover:border-white/20 transition-all duration-150 cursor-default"
-                      style={{ borderRadius: "2px" }}
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+          {/* ── Tags ───────────────────────────────────────────────── */}
+          {article.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-16 pt-8 border-t border-white/[0.06]">
+              {article.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[13px] px-3 py-1 rounded-full cursor-default transition-colors"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "rgba(255,255,255,0.4)",
+                    fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
-            {/* Share */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-10 pt-8 border-t border-white/8 flex items-center gap-4"
+          {/* ── Share ──────────────────────────────────────────────── */}
+          <div className="mt-8 pt-8 border-t border-white/[0.06] flex items-center justify-between">
+            <span
+              className="text-[13px]"
+              style={{
+                color: "rgba(255,255,255,0.3)",
+                fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif',
+              }}
             >
-              <span className="text-[11px] tracking-[0.2em] uppercase text-[#444]">Share</span>
-              <button
-                onClick={shareOnTwitter}
-                className="p-2.5 border border-white/8 text-[#555] hover:text-white hover:border-white/20 transition-all duration-150"
-                style={{ borderRadius: "2px" }}
-                aria-label="Share on Twitter"
-              >
-                <FiTwitter className="size-4" strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={shareOnLinkedIn}
-                className="p-2.5 border border-white/8 text-[#555] hover:text-white hover:border-white/20 transition-all duration-150"
-                style={{ borderRadius: "2px" }}
-                aria-label="Share on LinkedIn"
-              >
-                <FiLinkedin className="size-4" strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={handleCopyLink}
-                className="p-2.5 border border-white/8 text-[#555] hover:text-white hover:border-white/20 transition-all duration-150"
-                style={{ borderRadius: "2px" }}
-                aria-label="Copy link"
-              >
-                {copiedLink
-                  ? <FiCheck className="size-4 text-white" strokeWidth={1.5} />
-                  : <FiLink className="size-4" strokeWidth={1.5} />
-                }
-              </button>
-            </motion.div>
-          </div>
-
-          {/* ── Sidebar ──────────────────────────────────────────────────── */}
-          <div>
-            <div className="sticky top-24 space-y-10">
-
-              {/* Table of contents */}
-              {tableOfContents.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
+              Share this article
+            </span>
+            <div className="flex items-center gap-3">
+              {[
+                { icon: FiTwitter, label: "Twitter", fn: () => share("twitter") },
+                { icon: FiLinkedin, label: "LinkedIn", fn: () => share("linkedin") },
+                { icon: FiLink, label: copied ? "Copied!" : "Copy link", fn: () => share("copy") },
+              ].map(({ icon: Icon, label, fn }) => (
+                <button
+                  key={label}
+                  onClick={fn}
+                  className="flex items-center gap-2 text-[13px] px-4 py-2 rounded-full transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "rgba(255,255,255,0.45)",
+                    fontFamily: 'sohne, "Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.8)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.45)";
+                  }}
                 >
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#444] mb-5">
-                    Contents
-                  </p>
-                  <nav className="space-y-0">
-                    {tableOfContents.map((item, i) => (
-                      <a
-                        key={i}
-                        href={`#${item.id}`}
-                        className={`flex items-start gap-3 py-2 border-l transition-all duration-150 hover:border-white/25 hover:text-white text-[#555] text-[13px] leading-snug group ${
-                          item.level === 2
-                            ? "pl-4 border-white/6"
-                            : "pl-7 border-white/4 text-[12px]"
-                        }`}
-                      >
-                        <span className="text-[10px] font-mono text-[#333] mt-0.5 flex-shrink-0 group-hover:text-[#555]">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        {item.title}
-                      </a>
-                    ))}
-                  </nav>
-                </motion.div>
-              )}
-
-              {/* Back link */}
-              <motion.div
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.35 }}
-              >
-                <Link
-                  href="/articles"
-                  className="text-[13px] text-[#444] hover:text-white transition-colors duration-150"
-                >
-                  ← All articles
-                </Link>
-              </motion.div>
-
+                  <Icon className="size-3.5" />
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
+
+          {/* ── Copy link confirmation ──────────────────────────────── */}
+          {copied && (
+            <div
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 text-[13px] px-4 py-2 rounded-full"
+              style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", backdropFilter: "blur(8px)" }}
+            >
+              Link copied
+            </div>
+          )}
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }

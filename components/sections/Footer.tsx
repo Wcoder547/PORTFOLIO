@@ -96,10 +96,10 @@ export function Footer() {
             © {year} Waseem Akram. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-[13px] text-[#444] hover:text-[#888] transition-colors duration-200">
+            <a href="/privacy" className="text-[13px] text-[#444] hover:text-[#888] transition-colors duration-200">
               Privacy Policy
             </a>
-            <a href="#" className="text-[13px] text-[#444] hover:text-[#888] transition-colors duration-200">
+            <a href="/terms" className="text-[13px] text-[#444] hover:text-[#888] transition-colors duration-200">
               Terms of Service
             </a>
           </div>

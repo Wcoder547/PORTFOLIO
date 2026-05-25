@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowRight, FiClock } from "react-icons/fi";
+import { FiArrowRight, FiClock, FiCalendar } from "react-icons/fi";
 import { Article } from "@/lib/articles-data";
 
 interface Props {
@@ -25,7 +25,7 @@ export default function ArticlesClient({ articles }: Props) {
             Articles
           </h2>
           {articles.length > 0 && (
-            <span className="text-[11px] tracking-[0.25em] uppercase text-[#555] mb-2">
+            <span className="text-[11px] tracking-[0.25em] uppercase text-[#555] mb-2 font-mono">
               {articles.length} posts
             </span>
           )}
@@ -37,10 +37,10 @@ export default function ArticlesClient({ articles }: Props) {
         <p className="text-[#444] text-base">No articles yet.</p>
       )}
 
-      {/* Articles grid */}
+      {/* Articles grid — 2 columns, wider cards */}
       {articles.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {articles.map((article, index) => (
               <motion.article
                 key={article.slug}
@@ -48,75 +48,100 @@ export default function ArticlesClient({ articles }: Props) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ delay: index * 0.07 }}
-                className="group bg-[#0d0d0d] p-9 hover:bg-white/[0.03] transition-colors duration-300 flex flex-col"
+                className="group flex flex-col border border-white/8 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/15 transition-all duration-300 overflow-hidden"
+                style={{ borderRadius: "10px" }}
               >
                 {/* Thumbnail */}
-                <Link href={`/articles/${article.slug}`}>
-                  <div
-                    className="relative h-52 overflow-hidden mb-6"
-                    style={{ borderRadius: "2px" }}
-                  >
-                    <Image
-                      src={article.image.url}
-                      alt={article.title}
-                      fill
-                      unoptimized
-                      className="object-cover opacity-75 group-hover:opacity-95 group-hover:scale-[1.03] transition-all duration-500"
-                    />
-                    {/* Category pill */}
-                    <div className="absolute bottom-3 left-3">
+                <Link href={`/articles/${article.slug}`} className="block relative h-56 overflow-hidden flex-shrink-0">
+                  <Image
+                    src={article.image.url}
+                    alt={article.title}
+                    fill
+                    unoptimized
+                    className="object-cover opacity-80 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
+                    style={{ borderRadius: "10px 10px 0 0" }}
+                  />
+                  {/* Badges */}
+                  <div className="absolute top-3 left-3 flex items-center gap-2">
+                    <span
+                      className="text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 bg-black/70 border border-white/15 text-[#aaa] backdrop-blur-sm"
+                      style={{ borderRadius: "4px" }}
+                    >
+                      {article.category}
+                    </span>
+                  </div>
+                  {article.featured && (
+                    <div className="absolute top-3 right-3">
                       <span
-                        className="text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 bg-[#0d0d0d]/80 border border-white/15 text-[#888]"
-                        style={{ borderRadius: "2px" }}
+                        className="text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 bg-black/70 border border-white/20 text-white backdrop-blur-sm"
+                        style={{ borderRadius: "4px" }}
                       >
-                        {article.category}
+                        Featured
                       </span>
                     </div>
-                    {article.featured && (
-                      <div className="absolute top-3 right-3">
-                        <span
-                          className="text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 bg-[#0d0d0d]/80 border border-white/15 text-[#777]"
-                          style={{ borderRadius: "2px" }}
-                        >
-                          Featured
-                        </span>
-                      </div>
-                    )}
+                  )}
+                </Link>
+
+                {/* Content */}
+                <div className="flex flex-col flex-1 p-7">
+                  {/* Meta row */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="flex items-center gap-1.5 text-[11px] text-[#555] font-mono">
+                      <FiClock className="size-3" strokeWidth={1.5} />
+                      {article.readTime}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[11px] text-[#555] font-mono">
+                      <FiCalendar className="size-3" strokeWidth={1.5} />
+                      {article.date}
+                    </span>
                   </div>
-                </Link>
 
-                {/* Meta */}
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="flex items-center gap-1.5 text-[11px] text-[#555] tracking-wide">
-                    <FiClock className="size-3" />
-                    {article.readTime}
-                  </span>
-                  <span className="text-[#333]">·</span>
-                  <span className="text-[11px] text-[#555] tracking-wide">
-                    {article.date}
-                  </span>
+                  {/* Title */}
+                  <Link href={`/articles/${article.slug}`}>
+                    <h3 className="text-[20px] font-semibold text-white leading-snug tracking-[-0.015em] mb-3 line-clamp-2 group-hover:text-[#ccc] transition-colors duration-200">
+                      {article.title}
+                    </h3>
+                  </Link>
+
+                  {/* Excerpt */}
+                  <p className="text-[14px] text-[#666] leading-[1.85] line-clamp-2 flex-1 font-light mb-5">
+                    {article.excerpt}
+                  </p>
+
+                  {/* Tags */}
+                  {article.tags && article.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-5">
+                      {article.tags.slice(0, 4).map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1 border border-white/8 text-[#555]"
+                          style={{ borderRadius: "4px" }}
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                      {article.tags.length > 4 && (
+                        <span
+                          className="text-[10px] px-2.5 py-1 border border-white/6 text-[#444]"
+                          style={{ borderRadius: "4px" }}
+                        >
+                          +{article.tags.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Read more */}
+                  <div className="pt-4 border-t border-white/6">
+                    <Link
+                      href={`/articles/${article.slug}`}
+                      className="inline-flex items-center gap-2 text-[12px] tracking-[0.08em] uppercase text-[#555] hover:text-white transition-colors duration-200 group/link"
+                    >
+                      Read article
+                      <FiArrowRight className="size-3.5 group-hover/link:translate-x-1 transition-transform duration-200" strokeWidth={1.5} />
+                    </Link>
+                  </div>
                 </div>
-
-                {/* Title */}
-                <Link href={`/articles/${article.slug}`}>
-                  <h3 className="text-[22px] font-semibold text-white leading-snug tracking-[-0.01em] mb-3 line-clamp-2 group-hover:text-[#ccc] transition-colors duration-200">
-                    {article.title}
-                  </h3>
-                </Link>
-
-                {/* Excerpt */}
-                <p className="text-[15px] text-[#777] leading-[1.85] line-clamp-3 flex-1 font-light">
-                  {article.excerpt}
-                </p>
-
-                {/* Read more */}
-                <Link
-                  href={`/articles/${article.slug}`}
-                  className="inline-flex items-center gap-2 mt-6 text-[13px] tracking-[0.06em] uppercase text-[#666] hover:text-[#aaa] transition-colors duration-200 group/link"
-                >
-                  Read article
-                  <FiArrowRight className="size-3.5 group-hover/link:translate-x-1 transition-transform duration-200" />
-                </Link>
               </motion.article>
             ))}
           </div>

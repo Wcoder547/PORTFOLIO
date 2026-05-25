@@ -4,12 +4,12 @@ import { FaGithub, FaLinkedin, FaInstagram, FaXTwitter, FaWhatsapp } from "react
 import { useUserProfile } from "../hooks/useUserProfile";
 import type { Transition } from "framer-motion";
 
-
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.6, ease: "easeOut", delay } as Transition,
 });
+
 export function Hero() {
   const { user, loading } = useUserProfile();
 
@@ -30,7 +30,6 @@ export function Hero() {
     return (
       <section className="min-h-[85vh] flex items-center px-6">
         <div className="w-full max-w-5xl mx-auto animate-pulse space-y-6">
-          <div className="h-2 w-28 bg-white/5 rounded" />
           <div className="h-20 w-3/4 bg-white/5 rounded" />
           <div className="h-4 w-96 bg-white/5 rounded" />
         </div>
@@ -42,15 +41,8 @@ export function Hero() {
     <section id="hero" className="min-h-[85vh] flex items-center px-6 lg:px-8">
       <div className="w-full max-w-5xl mx-auto py-20 lg:py-28">
 
-        {/* Top tag */}
-        <motion.div {...fadeUp(0)} className="mb-8">
-          <span className="text-[11px] tracking-[0.2em] uppercase text-[#888]">
-            Full-Stack Developer · Pakistan
-          </span>
-        </motion.div>
-
         {/* Big name */}
-        <motion.div {...fadeUp(0.08)}>
+        <motion.div {...fadeUp(0)}>
           <h1
             className="font-black tracking-[-0.04em] leading-[0.9] uppercase"
             style={{ fontSize: "clamp(56px, 10vw, 120px)" }}
@@ -61,7 +53,7 @@ export function Hero() {
         </motion.div>
 
         {/* Headline from backend */}
-        <motion.div {...fadeUp(0.16)} className="flex items-center gap-4 mt-8 mb-5">
+        <motion.div {...fadeUp(0.1)} className="flex items-center gap-4 mt-8 mb-5">
           <div className="h-px w-8 bg-white/20 shrink-0" />
           <p className="text-[13px] font-light tracking-[0.06em] text-[#bbb]">
             {user?.headline ?? "Software Engineer | Full-Stack Developer"}
@@ -70,7 +62,7 @@ export function Hero() {
 
         {/* Description from backend */}
         <motion.p
-          {...fadeUp(0.22)}
+          {...fadeUp(0.18)}
           className="text-[15px] font-light text-[#888] leading-[1.8] max-w-lg mb-10"
           style={{ letterSpacing: "0.01em" }}
         >
@@ -78,8 +70,8 @@ export function Hero() {
             "Full-Stack Developer from Pakistan — I build fast, scalable web apps from idea to deployment."}
         </motion.p>
 
-        {/* CTAs + Socials row */}
-        <motion.div {...fadeUp(0.28)} className="flex flex-wrap items-center gap-6">
+        {/* CTAs */}
+        <motion.div {...fadeUp(0.24)} className="flex flex-wrap items-center gap-6">
           <a
             href={scheduleHref}
             target={user?.whatsapp ? "_blank" : undefined}
@@ -102,12 +94,10 @@ export function Hero() {
               </svg>
             </a>
           )}
-
         </motion.div>
-
       </div>
 
-      {/* Vertical socials — fixed right side */}
+      {/* Vertical socials — fixed left side */}
       {socials.length > 0 && (
         <div className="hidden lg:flex fixed left-8 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-6">
           {socials.map(({ href, icon: Icon, label }) => (

@@ -46,3 +46,80 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+
+/* ── MD Editor dark mode fix ─────────────────────────────────────────── */
+[data-color-mode="dark"] .w-md-editor {
+  background-color: #111 !important;
+  color: #ccc !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-text-pre > code,
+[data-color-mode="dark"] .w-md-editor-text-input,
+[data-color-mode="dark"] .w-md-editor-text {
+  background-color: #111 !important;
+  color: #ccc !important;
+  caret-color: white !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar {
+  background-color: #1a1a1a !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar li > button {
+  color: #666 !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar li > button:hover {
+  color: #ccc !important;
+  background-color: rgba(255,255,255,0.06) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview {
+  background-color: #111 !important;
+  border-left: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+[data-color-mode="dark"] .wmde-markdown {
+  background-color: #111 !important;
+  color: #999 !important;
+}
+
+[data-color-mode="dark"] .wmde-markdown h1,
+[data-color-mode="dark"] .wmde-markdown h2,
+[data-color-mode="dark"] .wmde-markdown h3 {
+  color: #fff !important;
+  border-bottom-color: rgba(255,255,255,0.08) !important;
+}
+
+[data-color-mode="dark"] .wmde-markdown code {
+  background-color: rgba(255,255,255,0.07) !important;
+  color: #e0c97f !important;
+}
+
+[data-color-mode="dark"] .wmde-markdown pre {
+  background-color: #0d0d0d !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-bar svg {
+  color: #555 !important;
+}
+
+
+/* Fix write panel text visibility */
+[data-color-mode="dark"] .w-md-editor-text-pre,
+[data-color-mode="dark"] .w-md-editor-text-pre *,
+[data-color-mode="dark"] .w-md-editor-text-input {
+  color: #ccc !important;
+  -webkit-text-fill-color: #ccc !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-area {
+  background-color: #111 !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-content {
+  background-color: #111 !important;
+}
