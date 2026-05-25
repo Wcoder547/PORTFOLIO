@@ -19,7 +19,7 @@ export function Experience() {
     fetch("/api/admin/experience")
       .then((r) => r.json())
       .then((json) => {
-        if (json.data) setExperiences([...json.data].reverse());
+        if (json.data) setExperiences(json.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -27,7 +27,10 @@ export function Experience() {
 
   if (loading) {
     return (
-      <section id="experience" className="py-28 px-6 lg:px-16 max-w-6xl mx-auto">
+      <section
+        id="experience"
+        className="py-28 px-6 lg:px-16 max-w-6xl mx-auto"
+      >
         <div className="animate-pulse space-y-16">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="grid grid-cols-[200px_1fr] gap-12">

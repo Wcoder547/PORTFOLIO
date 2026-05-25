@@ -189,7 +189,7 @@ export function Projects() {
               </div>
 
               {/* Right — thumbnail */}
-              <div className="order-1 lg:order-2 overflow-hidden" style={{ borderRadius: "2px" }}>
+              <div className="order-1 lg:order-2 overflow-hidden" style={{ borderRadius: "10px" }}>
                 {project.thumbnail?.url ? (
                   <div className="relative h-56 lg:h-64 overflow-hidden">
                     <Image
