@@ -15,8 +15,8 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       <Experience />
-      <TechStack />
       <Projects />
+      <TechStack />
       <Articles />
       <Testimonials />
       <FAQ />
