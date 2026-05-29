@@ -78,7 +78,7 @@ export function Contact() {
           className="space-y-8"
         >
           <p className="text-[24px] lg:text-[28px] text-[#bbb] font-light leading-[1.7] tracking-[-0.01em]">
-            Open to full-time, freelance, and contract —{" "}
+            Open to full-time Full-Stack Developer roles, remote opportunities, and selective freelance projects.
             <span className="text-white">US, UK, and worldwide.</span>
           </p>
 

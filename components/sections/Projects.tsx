@@ -177,10 +177,11 @@ export function Projects() {
                       href={project.liveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[13px] text-[#999] hover:text-white transition-colors duration-200 group/link"
+                      className="flex items-center gap-2 px-4 py-2 border border-white/15 text-[12px] tracking-[0.06em] uppercase text-[#999] hover:text-white hover:border-white/30 transition-all duration-200 group/link"
+                      style={{ borderRadius: "2px" }}
                     >
-                      <FiExternalLink className="size-4 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform duration-200" />
-                      Live preview
+                      <FiExternalLink className="size-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform duration-200" />
+                      Live Preview
                     </Link>
                   )}
                   {project.githubUrl && (
@@ -188,17 +189,17 @@ export function Projects() {
                       href={project.githubUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[13px] text-[#666] hover:text-[#aaa] transition-colors duration-200"
+                      className="flex items-center gap-2 px-4 py-2 border border-white/15 text-[12px] tracking-[0.06em] uppercase text-[#666] hover:text-[#bbb] hover:border-white/30 transition-all duration-200"
+                      style={{ borderRadius: "2px" }}
                     >
-                      <FiGithub className="size-4" />
-                      Source
+                      <FiGithub className="size-3.5" />
+                      GitHub
                     </Link>
                   )}
                 </div>
               </div>
 
-              {/* Right — thumbnail */}
-              {/* Right — thumbnail */}
+              
               <div className="order-1 lg:order-2 rounded-[10px] overflow-hidden">
                 {project.thumbnail?.url ? (
                   <Link
